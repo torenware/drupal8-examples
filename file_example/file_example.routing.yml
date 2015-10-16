@@ -9,11 +9,11 @@ file_example.description:
 filed_example.fileapi:
   path: '/examples/file_example/fileapi'
   defaults:
-    _form: '\Drupal\file_example\Controller\FileExampleReadWriteForm'
+    _form: '\Drupal\file_example\Form\FileExampleReadWriteForm'
     _title: 'Use File API to read/write a file'
   requirements:
     _permission: 'use file example'
-  
+
 file_example.access_session:
   path: '/examples/file_example/access_session'
   defaults:
@@ -21,4 +21,3 @@ file_example.access_session:
     _title: 'Session Accessor'
   requirements:
     _permission: 'use file example'
-

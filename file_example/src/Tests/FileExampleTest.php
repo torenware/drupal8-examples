@@ -58,10 +58,11 @@ class FileExampleTest extends WebTestBase {
     );
     foreach ($buttons as $button) {
       // For each scheme supported by Drupal + the session:// wrapper.
-      $schemes = array('public', 'private', 'temporary', 'session');
+      //$schemes = array('public', 'private', 'temporary', 'session');
+      $schemes = array('public', 'private', 'temporary');
       foreach ($schemes as $scheme) {
         // Create a directory for use.
-        $dirname = $scheme . '://' . $this->randomName(10);
+        $dirname = $scheme . '://' . $this->randomMachineName(10);
 
         // Directory does not yet exist; assert that.
         $edit = array(
@@ -77,8 +78,8 @@ class FileExampleTest extends WebTestBase {
         $this->assertRaw(t('Directory %dirname exists', array('%dirname' => $dirname)), 'Verify that directory now does exist.');
 
         // Create a file in the directory we created.
-        $content = $this->randomName(30);
-        $filename = $dirname . '/' . $this->randomName(30) . '.txt';
+        $content = $this->randomString(30);
+        $filename = $dirname . '/' . $this->randomMachineName(30) . '.txt';
 
         // Assert that the file we're about to create does not yet exist.
         $edit = array(

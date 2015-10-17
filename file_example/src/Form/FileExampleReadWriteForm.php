@@ -492,6 +492,13 @@ class FileExampleReadWriteForm extends FormBase {
   /**
    * {@inheritdoc}
    */
+  public function validateForm(array &$form, FormStateInterface $form_state) {
+    //we don't use this, but the interface requires us to implement it.
+  }
+  
+  /**
+   * {@inheritdoc}
+   */
   public function submitForm(array &$form, FormStateInterface $form_state) {
     //we don't use this, but the interface requires us to implement it.
   }

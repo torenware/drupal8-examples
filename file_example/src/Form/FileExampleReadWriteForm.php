@@ -12,6 +12,7 @@ use Drupal\file\FileInterface;
 use Drupal\Core\Form\FormBase;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
+
 /**
  * File test form class.
  *
@@ -183,11 +184,11 @@ class FileExampleReadWriteForm extends FormBase {
       $url = file_create_url($file_object->getFileUri());
       $_SESSION['file_example_default_file'] = $file_object->getFileUri();
       drupal_set_message(
-        t('Saved managed file: %file to destination %destination (accessible via !url, actual uri=<span id="uri">@uri</span>)',
+       $this->t('Saved managed file: %file to destination %destination (accessible via !url, actual uri=<span id="uri">@uri</span>)',
           array(
             '%file' => print_r($file_object, TRUE),
             '%destination' => $uri, '@uri' => $file_object->getFileUri(),
-            '!url' => l(t('this URL'), $url),
+            '!url' => $this->l(t('this URL'), $url),
           )
         )
       );
@@ -221,11 +222,11 @@ class FileExampleReadWriteForm extends FormBase {
       $url = file_create_url($filename);
       $_SESSION['file_example_default_file'] = $filename;
       drupal_set_message(
-        t('Saved file as %filename (accessible via !url, uri=<span id="uri">@uri</span>)',
+       $this->t('Saved file as %filename (accessible via !url, uri=<span id="uri">@uri</span>)',
           array(
             '%filename' => $filename,
             '@uri' => $filename,
-            '!url' => l(t('this URL'), $url),
+            '!url' => $this->l(t('this URL'), $url),
           )
         )
       );
@@ -278,11 +279,11 @@ class FileExampleReadWriteForm extends FormBase {
     $url = file_create_url($destination);
     $_SESSION['file_example_default_file'] = $destination;
     drupal_set_message(
-      t('Saved file as %filename (accessible via !url, uri=<span id="uri">@uri</span>)',
+     $this->t('Saved file as %filename (accessible via !url, uri=<span id="uri">@uri</span>)',
         array(
           '%filename' => $destination,
           '@uri' => $destination,
-          '!url' => l(t('this URL'), $url),
+          '!url' => $this->l(t('this URL'), $url),
         )
       )
     );
@@ -331,10 +332,10 @@ class FileExampleReadWriteForm extends FormBase {
         $url = file_create_url($sourcename);
         $_SESSION['file_example_default_file'] = $sourcename;
         drupal_set_message(
-          t('The file was read and copied to %filename which is accessible at !url',
+         $this->t('The file was read and copied to %filename which is accessible at !url',
             array(
               '%filename' => $sourcename,
-              '!url' => l($url, $url),
+              '!url' => $this->l($url, $url),
             )
           )
         );
@@ -480,8 +481,8 @@ class FileExampleReadWriteForm extends FormBase {
   public function handleShowSession(array &$form, FormStateInterface $form_state) {
     $form_values = $form_state->getValues();
     // If the devel module is installed, use it's nicer message format.
-    if (module_exists('devel')) {
-      dsm($_SESSION['file_example'], t('Entire $_SESSION["file_example"]'));
+    if (\Drupal::moduleHandler()->moduleExists('devel')) {
+      dsm($_SESSION['file_example'],$this->t('Entire $_SESSION["file_example"]'));
     }
     else {
       drupal_set_message('<pre>' . print_r($_SESSION['file_example'], TRUE) . '</pre>');
@@ -505,6 +506,10 @@ class FileExampleReadWriteForm extends FormBase {
   *
   * @param string $uri
   *   The URI of the file, like public://test.txt.
+  
+  * @return FileInterface|bool
+  *
+  * @todo This should still work. An entity query could be used instead. May be other alternatives.
   */
   private static function getManagedFile($uri) {
     $fid = db_query('SELECT fid FROM {file_managed} WHERE uri = :uri', array(':uri' => $uri))->fetchField();

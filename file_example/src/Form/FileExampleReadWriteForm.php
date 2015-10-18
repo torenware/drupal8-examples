@@ -10,8 +10,9 @@ namespace Drupal\file_example\Form;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\file\FileInterface;
 use Drupal\Core\Form\FormBase;
+use Drupal\Core\Url;
+use Drupal\Component\Utility\Html;
 use Symfony\Component\DependencyInjection\ContainerInterface;
-
 
 /**
  * File test form class.
@@ -177,26 +178,94 @@ class FileExampleReadWriteForm extends FormBase {
     $form_values = $form_state->getValues();
     $data = $form_values['write_contents'];
     $uri = !empty($form_values['destination']) ? $form_values['destination'] : NULL;
-  
+
     // Managed operations work with a file object.
     $file_object = file_save_data($data, $uri, FILE_EXISTS_RENAME);
     if (!empty($file_object)) {
-      $url = file_create_url($file_object->getFileUri());
+      $url = self::getExternalUrl($file_object);
       $_SESSION['file_example_default_file'] = $file_object->getFileUri();
-      drupal_set_message(
-       $this->t('Saved managed file: %file to destination %destination (accessible via !url, actual uri=<span id="uri">@uri</span>)',
-          array(
-            '%file' => print_r($file_object, TRUE),
-            '%destination' => $uri, '@uri' => $file_object->getFileUri(),
-            '!url' => $this->l(t('this URL'), $url),
+      $file_data = $file_object->toArray();
+      if ($url) {
+        drupal_set_message(
+         $this->t('Saved managed file: %file to destination %destination (accessible via !url, actual uri=<span id="uri">@uri</span>)',
+            array(
+              '%file' => print_r($file_data, TRUE),
+              '%destination' => $uri, '@uri' => $file_object->getFileUri(),
+              '!url' => $this->createLink(t('this URL'), $url),
+            )
           )
-        )
-      );
+        );
+      }
+      else {
+        //this Uri is not routable, so we cannot give a link to it.
+        drupal_set_message(
+         $this->t('Saved managed file: %file to destination %destination (no URL, since this stream type does not support it)',
+            array(
+              '%file' => print_r($file_data, TRUE),
+              '%destination' => $uri, '@uri' => $file_object->getFileUri(),
+            )
+          )
+        );
+
+      }
     }
     else {
       drupal_set_message(t('Failed to save the managed file'), 'error');
     }
 
+  }
+
+  /**
+   * Helper function to get us an external URL if this is legal, and to catch
+   * the exception Drupal throws if this is not possible.
+   */
+  private static function getExternalUrl($file_object) {
+    if ($file_object instanceof FileInterface) {
+      $uri = $file_object->getFileUri();
+    }
+    else {
+      // a little tricky, since file.inc is a little inconsistent, but often this
+      // is a Uri
+      $uri = $file_object;
+    }
+ 
+    $url = Url::fromUri($uri);
+    
+    try {
+      if ($url->isExternal()) {
+        return $url;
+      }
+      // if the Uri is unroutable (such as for a temporary file), or if Drupal cannot create
+      // a link, we will throw here:
+      $url->toString();
+    }
+    catch (\Exception $e) {
+      return FALSE;
+    }
+    return $url;
+  }
+  
+  /**
+   * Drupal 8 appears to have problems creating links for unmanaged files.  This
+   * is a work-around.
+   *
+   * @param string
+   *   Localized text to display.
+   * @param Url $url
+   *   URL object
+   */
+  private function createLink($text, $url) {
+    if ($url->isRouted()) {
+      return $this->l($text, $url);
+    }
+    //appears to be an unmanaged link.  Make an external link.
+    if ($url->isExternal()) {
+      $text_url = file_create_url($url->getUri());
+      //might be better to render this:
+      //$link = "<a href='" . $text_url . "'>" .  Html::escape($text) . "</a>";
+      return $text_url;
+    }
+    return '';
   }
 
 /**
@@ -215,21 +284,33 @@ class FileExampleReadWriteForm extends FormBase {
     $form_values = $form_state->getValues();
     $data = $form_values['write_contents'];
     $destination = !empty($form_values['destination']) ? $form_values['destination'] : NULL;
-  
+
     // With the unmanaged file we just get a filename back.
     $filename = file_unmanaged_save_data($data, $destination, FILE_EXISTS_REPLACE);
     if ($filename) {
-      $url = file_create_url($filename);
+      $url = self::getExternalUrl($filename);
       $_SESSION['file_example_default_file'] = $filename;
-      drupal_set_message(
-       $this->t('Saved file as %filename (accessible via !url, uri=<span id="uri">@uri</span>)',
-          array(
-            '%filename' => $filename,
-            '@uri' => $filename,
-            '!url' => $this->l(t('this URL'), $url),
+      if ($url) {
+        drupal_set_message(
+         $this->t('Saved file as %filename (accessible via !url, uri=<span id="uri">@uri</span>)',
+            array(
+              '%filename' => $filename,
+              '@uri' => $filename,
+              '!url' => $this->createLink(t('this URL'), $url),
+            )
           )
-        )
-      );
+        );
+      }
+      else {
+        drupal_set_message(
+         $this->t('Saved file as %filename (not accessible externally)',
+            array(
+              '%filename' => $filename,
+              '@uri' => $filename,
+            )
+          )
+        );        
+      }
     }
     else {
       drupal_set_message(t('Failed to save the file'), 'error');
@@ -252,16 +333,16 @@ class FileExampleReadWriteForm extends FormBase {
     $form_values = $form_state->getValues();
     $data = $form_values['write_contents'];
     $destination = !empty($form_values['destination']) ? $form_values['destination'] : NULL;
-  
+
     if (empty($destination)) {
       // If no destination has been provided, use a generated name.
       $destination = drupal_tempnam('public://', 'file');
     }
-  
+
     // With all traditional PHP functions we can use the stream wrapper notation
     // for a file as well.
     $fp = fopen($destination, 'w');
-  
+
     // To demonstrate the fact that everything is based on streams, we'll do
     // multiple 5-character writes to put this to the file. We could easily
     // (and far more conveniently) write it in a single statement with
@@ -276,17 +357,29 @@ class FileExampleReadWriteForm extends FormBase {
         return;
       }
     }
-    $url = file_create_url($destination);
+    $url = self::getExternalUrl($destination);
     $_SESSION['file_example_default_file'] = $destination;
-    drupal_set_message(
-     $this->t('Saved file as %filename (accessible via !url, uri=<span id="uri">@uri</span>)',
-        array(
-          '%filename' => $destination,
-          '@uri' => $destination,
-          '!url' => $this->l(t('this URL'), $url),
+    if ($url) {
+      drupal_set_message(
+       $this->t('Saved file as %filename (accessible via !url, uri=<span id="uri">@uri</span>)',
+          array(
+            '%filename' => $destination,
+            '@uri' => $destination,
+            '!url' => $this->createLink(t('this URL'), $url),
+          )
         )
-      )
-    );
+      );
+    }
+    else {
+      drupal_set_message(
+       $this->t('Saved file as %filename (not accessible externally)',
+          array(
+            '%filename' => $destination,
+            '@uri' => $destination,
+          )
+        )
+      );      
+    }
 
   }
 
@@ -314,31 +407,43 @@ class FileExampleReadWriteForm extends FormBase {
   public function handleFileRead(array &$form, FormStateInterface $form_state) {
     $form_values = $form_state->getValues();
     $uri = $form_values['fileops_file'];
-  
-    if (!is_file($uri)) {
-      drupal_set_message(t('The file %uri does not exist', array('%uri' => $uri)), 'error');
+
+    if (empty($uri) or !is_file($uri)) {
+      drupal_set_message(t('The file "%uri" does not exist', array('%uri' => $uri)), 'error');
       return;
     }
-  
+
     // Make a working filename to save this by stripping off the (possible)
     // file portion of the streamwrapper. If it's an evil file extension,
     // file_munge_filename() will neuter it.
     $filename = file_munge_filename(preg_replace('@^.*/@', '', $uri), '', TRUE);
     $buffer = file_get_contents($uri);
-  
+
     if ($buffer) {
       $sourcename = file_unmanaged_save_data($buffer, 'public://' . $filename);
       if ($sourcename) {
-        $url = file_create_url($sourcename);
+        $url = self::getExternalUrl($sourcename);
         $_SESSION['file_example_default_file'] = $sourcename;
-        drupal_set_message(
-         $this->t('The file was read and copied to %filename which is accessible at !url',
-            array(
-              '%filename' => $sourcename,
-              '!url' => $this->l($url, $url),
+        if ($url) {
+          drupal_set_message(
+           $this->t('The file was read and copied to %filename which is accessible at !url',
+              array(
+                '%filename' => $sourcename,
+                '!url' => $this->createLink($url, $url),
+              )
             )
-          )
-        );
+          );
+        }
+        else {
+          drupal_set_message(
+           $this->t('The file was read and copied to %filename (not accessible externally)',
+              array(
+                '%filename' => $sourcename,
+              )
+            )
+          );
+          
+        }
       }
       else {
         drupal_set_message(t('Failed to save the file'));
@@ -358,12 +463,12 @@ class FileExampleReadWriteForm extends FormBase {
   public function handleFileDelete(array &$form, FormStateInterface $form_state) {
     $form_values = $form_state->getValues();
     $uri = $form_values['fileops_file'];
-  
+
     // Since we don't know if the file is managed or not, look in the database
     // to see. Normally, code would be working with either managed or unmanaged
     // files, so this is not a typical situation.
     $file_object = self::getManagedFile($uri);
-  
+
     // If a managed file, use file_delete().
     if (!empty($file_object)) {
       $result = file_delete($file_object);
@@ -417,7 +522,7 @@ class FileExampleReadWriteForm extends FormBase {
   public function handleDirectoryCreate(array &$form, FormStateInterface $form_state) {
     $form_values = $form_state->getValues();
     $directory = $form_values['directory_name'];
-  
+
     // The options passed to file_prepare_directory are a bitmask, so we can
     // specify either FILE_MODIFY_PERMISSIONS (set permissions on the directory),
     // FILE_CREATE_DIRECTORY, or both together:
@@ -442,7 +547,7 @@ class FileExampleReadWriteForm extends FormBase {
   public function handleDirectoryDelete(array &$form, FormStateInterface $form_state) {
     $form_values = $form_state->getValues();
     $directory = $form_values['directory_name'];
-  
+
     $result = file_unmanaged_delete_recursive($directory);
     if (!$result) {
       drupal_set_message(t('Failed to delete %directory.', array('%directory' => $directory)), 'error');
@@ -495,14 +600,14 @@ class FileExampleReadWriteForm extends FormBase {
   public function validateForm(array &$form, FormStateInterface $form_state) {
     //we don't use this, but the interface requires us to implement it.
   }
-  
+
   /**
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
     //we don't use this, but the interface requires us to implement it.
   }
-  
+
   /**
   * Utility function to check for and return a managed file.
   *
@@ -513,7 +618,7 @@ class FileExampleReadWriteForm extends FormBase {
   *
   * @param string $uri
   *   The URI of the file, like public://test.txt.
-  
+
   * @return FileInterface|bool
   *
   * @todo This should still work. An entity query could be used instead. May be other alternatives.
@@ -526,5 +631,5 @@ class FileExampleReadWriteForm extends FormBase {
     }
     return FALSE;
   }
- 
+
 }

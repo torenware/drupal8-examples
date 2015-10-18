@@ -12,6 +12,8 @@ namespace Drupal\file_example\StreamWrapper;
 use Drupal\Core\StreamWrapper\StreamWrapperInterface;
 use Drupal\Core\StreamWrapper;
 use Drupal\Core\Url;
+use Drupal\Component\Utility\Unicode;
+use Drupal\Component\Utility\Html;
 
 /**
  * Example stream wrapper class to handle session:// streams.
@@ -140,6 +142,8 @@ class FileExampleSessionStreamWrapper implements StreamWrapperInterface {
    *
    * The "target" is the portion of the URI to the right of the scheme.
    * So in session://example/test.txt, the target is 'example/test.txt'.
+   *
+   * @todo Figure out what this is in the new API.
    */
   public function getTarget($uri = NULL) {
     if (!isset($uri)) {
@@ -155,6 +159,8 @@ class FileExampleSessionStreamWrapper implements StreamWrapperInterface {
 
   /**
    * Implements getMimeType().
+   *
+   * @todo See if we can remove this; it's not part of the new API.
    */
   public static function getMimeType($uri, $mapping = NULL) {
     if (!isset($mapping)) {
@@ -176,7 +182,7 @@ class FileExampleSessionStreamWrapper implements StreamWrapperInterface {
     // - image.jpeg, and
     // - awesome.image.jpeg
     while ($additional_part = array_pop($file_parts)) {
-      $extension = drupal_strtolower($additional_part . ($extension ? '.' . $extension : ''));
+      $extension = Unicode::strtolower($additional_part . ($extension ? '.' . $extension : ''));
       if (isset($mapping['extensions'][$extension])) {
         return $mapping['mimetypes'][$mapping['extensions'][$extension]];
       }
@@ -308,7 +314,7 @@ class FileExampleSessionStreamWrapper implements StreamWrapperInterface {
     // Set up a reference to the root session:// 'directory.'
     $var = &$_SESSION['file_example'];
     // Handle case of just session://.
-    if (count($path_components) < 1) {
+    if (count($path_components) == 1 && $path_components[0] === '') {
       return $var;
     }
     // Walk through the path components and create keys in $_SESSION,
@@ -325,7 +331,7 @@ class FileExampleSessionStreamWrapper implements StreamWrapperInterface {
     }
     return $var;
   }
-  
+
   /**
    * Retrieve the underlying stream resource.
    *
@@ -346,7 +352,7 @@ class FileExampleSessionStreamWrapper implements StreamWrapperInterface {
   public function stream_cast($cast_as) {
     return FALSE;
   }
-  
+
   /**
    * Sets metadata on the stream.
    *
@@ -380,8 +386,8 @@ class FileExampleSessionStreamWrapper implements StreamWrapperInterface {
   public function stream_metadata($path, $option, $value) {
     return FALSE;
   }
-  
- 
+
+
    /**
    * Change stream options.
    *
@@ -416,7 +422,7 @@ class FileExampleSessionStreamWrapper implements StreamWrapperInterface {
   public function stream_set_option($option, $arg1, $arg2) {
     return FALSE;
   }
- 
+
   /**
    * Truncate stream.
    *
@@ -432,8 +438,8 @@ class FileExampleSessionStreamWrapper implements StreamWrapperInterface {
    *   This one actually makes sense for the example.
    */
   public function stream_truncate($new_size) {
-    return FALSE; 
-  }    
+    return FALSE;
+  }
 
   /**
    * Support for flock().
@@ -470,10 +476,10 @@ class FileExampleSessionStreamWrapper implements StreamWrapperInterface {
    */
   public function stream_read($count) {
     if (is_string($this->sessionContent)) {
-      $remaining_chars = drupal_strlen($this->sessionContent) - $this->streamPointer;
+      $remaining_chars = strlen($this->sessionContent) - $this->streamPointer;
       $number_to_read = min($count, $remaining_chars);
       if ($remaining_chars > 0) {
-        $buffer = drupal_substr($this->sessionContent, $this->streamPointer, $number_to_read);
+        $buffer = substr($this->sessionContent, $this->streamPointer, $number_to_read);
         $this->streamPointer += $number_to_read;
         return $buffer;
       }
@@ -495,10 +501,10 @@ class FileExampleSessionStreamWrapper implements StreamWrapperInterface {
   public function stream_write($data) {
     // Sanitize the data in a simple way since we're putting it into the
     // session variable.
-    $data = check_plain($data);
+    $data = Html::escape($data);
     $this->sessionContent = substr_replace($this->sessionContent, $data, $this->streamPointer);
-    $this->streamPointer += drupal_strlen($data);
-    return drupal_strlen($data);
+    $this->streamPointer += strlen($data);
+    return strlen($data);
   }
 
   /**
@@ -527,7 +533,7 @@ class FileExampleSessionStreamWrapper implements StreamWrapperInterface {
    * @see http://php.net/manual/en/streamwrapper.stream-seek.php
    */
   public function stream_seek($offset, $whence = SEEK_SET) {
-    if (drupal_strlen($this->sessionContent) >= $offset) {
+    if (strlen($this->sessionContent) >= $offset) {
       $this->streamPointer = $offset;
       return TRUE;
     }
@@ -571,7 +577,7 @@ class FileExampleSessionStreamWrapper implements StreamWrapperInterface {
    */
   public function stream_stat() {
     return array(
-      'size' => drupal_strlen($this->sessionContent),
+      'size' => strlen($this->sessionContent),
     );
   }
 
@@ -761,7 +767,7 @@ class FileExampleSessionStreamWrapper implements StreamWrapperInterface {
     if ($mode) {
       $size = 0;
       if ($mode == 0100000) {
-        $size = drupal_strlen($key);
+        $size = strlen($key);
       }
 
       // There are no protections on this, so all writable.

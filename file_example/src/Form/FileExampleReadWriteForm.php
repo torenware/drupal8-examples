@@ -12,6 +12,7 @@ use Drupal\file\FileInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Url;
 use Drupal\Component\Utility\Html;
+use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -26,11 +27,32 @@ class FileExampleReadWriteForm extends FormBase {
    *
    */
   public function __construct() {
-
+    //todo: we may need to inject a session related object here.
   }
 
   /**
    * {@inheritdoc}
+   *
+   * This is an override of LinkGeneratorTrait::l to work around
+   * some problems related to handling non-routing URLs.
+   *
+   * @see https://www.drupal.org/node/2539622
+   */
+  protected function l($text, Url $url) {
+    try {
+      $l = parent::l($text, $url);
+      return $l;
+    }
+    catch (\Exception $e) {
+      
+    }
+    return '';
+  }
+ 
+  /**
+   * {@inheritdoc}
+   *
+   * @todo set up dependency injections for sessions.
    */
   public static function create(ContainerInterface $container) {
     //return new static($container->get('plugin.manager.mail'));
@@ -118,7 +140,7 @@ class FileExampleReadWriteForm extends FormBase {
     $form['fileops']['check_submit'] = array(
       '#type' => 'submit',
       '#value' => $this->t('Check to see if file exists'),
-      '#submit' => array('file_example_file_check_exists_submit'),
+      '#submit' => array('::handleFileExists'),
     );
 
     $form['directory'] = array(
@@ -157,7 +179,12 @@ class FileExampleReadWriteForm extends FormBase {
       '#value' => $this->t('Show raw $_SESSION contents'),
       '#submit' => array('::handleShowSession'),
     );
-
+    $form['debug']['reset_session'] = array(
+      '#type' => 'submit',
+      '#value' => t('Reset the Session'),
+      '#submit' => array('::handleResetSession'),
+    );
+    
     return $form;
   }
 
@@ -180,7 +207,7 @@ class FileExampleReadWriteForm extends FormBase {
     $uri = !empty($form_values['destination']) ? $form_values['destination'] : NULL;
 
     // Managed operations work with a file object.
-    $file_object = file_save_data($data, $uri, FILE_EXISTS_RENAME);
+    $file_object = \file_save_data($data, $uri, FILE_EXISTS_RENAME);
     if (!empty($file_object)) {
       $url = self::getExternalUrl($file_object);
       $_SESSION['file_example_default_file'] = $file_object->getFileUri();
@@ -191,7 +218,7 @@ class FileExampleReadWriteForm extends FormBase {
             array(
               '%file' => print_r($file_data, TRUE),
               '%destination' => $uri, '@uri' => $file_object->getFileUri(),
-              '!url' => $this->createLink(t('this URL'), $url),
+              '!url' => $this->l(t('this URL'), $url),
             )
           )
         );
@@ -225,13 +252,12 @@ class FileExampleReadWriteForm extends FormBase {
     }
     else {
       // a little tricky, since file.inc is a little inconsistent, but often this
-      // is a Uri
-      $uri = $file_object;
+      // is a Uri. See http://drupal.stackexchange.com/questions/177869/how-to-create-a-url-to-an-unmanaged-public-file-in-drupal-8
+      $uri = file_create_url($file_object);
     }
- 
-    $url = Url::fromUri($uri);
-    
+   
     try {
+      $url = Url::fromUri($uri);
       if ($url->isExternal()) {
         return $url;
       }
@@ -245,29 +271,6 @@ class FileExampleReadWriteForm extends FormBase {
     return $url;
   }
   
-  /**
-   * Drupal 8 appears to have problems creating links for unmanaged files.  This
-   * is a work-around.
-   *
-   * @param string
-   *   Localized text to display.
-   * @param Url $url
-   *   URL object
-   */
-  private function createLink($text, $url) {
-    if ($url->isRouted()) {
-      return $this->l($text, $url);
-    }
-    //appears to be an unmanaged link.  Make an external link.
-    if ($url->isExternal()) {
-      $text_url = file_create_url($url->getUri());
-      //might be better to render this:
-      //$link = "<a href='" . $text_url . "'>" .  Html::escape($text) . "</a>";
-      return $text_url;
-    }
-    return '';
-  }
-
 /**
  * Submit handler to write an unmanaged file.
  *
@@ -296,7 +299,7 @@ class FileExampleReadWriteForm extends FormBase {
             array(
               '%filename' => $filename,
               '@uri' => $filename,
-              '!url' => $this->createLink(t('this URL'), $url),
+              '!url' => $this->l(t('this URL'), $url),
             )
           )
         );
@@ -365,7 +368,7 @@ class FileExampleReadWriteForm extends FormBase {
           array(
             '%filename' => $destination,
             '@uri' => $destination,
-            '!url' => $this->createLink(t('this URL'), $url),
+            '!url' => $this->l(t('this URL'), $url),
           )
         )
       );
@@ -425,11 +428,13 @@ class FileExampleReadWriteForm extends FormBase {
         $url = self::getExternalUrl($sourcename);
         $_SESSION['file_example_default_file'] = $sourcename;
         if ($url) {
+          //We need to convert the URL to string. Since the URL class throws on non-routables.
+          $url_string = file_create_url($url->getUri());
           drupal_set_message(
            $this->t('The file was read and copied to %filename which is accessible at !url',
               array(
                 '%filename' => $sourcename,
-                '!url' => $this->createLink($url, $url),
+                '!url' => $this->l($url_string, $url),
               )
             )
           );
@@ -471,7 +476,16 @@ class FileExampleReadWriteForm extends FormBase {
 
     // If a managed file, use file_delete().
     if (!empty($file_object)) {
-      $result = file_delete($file_object);
+      // While file_delete should return FALSE on failure,
+      // it can currently throw an exception on certain cache states.
+      $result = FALSE;
+      try {
+        $result = file_delete($file_object);
+      }
+      catch (\Exception $e) {
+        //we should never get here, but as of 8.0rc1, YES WE CAN!
+        error_log('should not get here');
+      }
       if ($result !== TRUE) {
         drupal_set_message(t('Failed deleting managed file %uri. Result was %result',
           array(
@@ -592,6 +606,16 @@ class FileExampleReadWriteForm extends FormBase {
     else {
       drupal_set_message('<pre>' . print_r($_SESSION['file_example'], TRUE) . '</pre>');
     }
+  }
+
+  /**
+   * Utility submit function to show the contents of $_SESSION.
+   */
+  public function handleResetSession(array &$form, FormStateInterface $form_state) {
+    unset($_SESSION['file_example']);
+    unset($_SESSION['file_example_default_file']);
+    unset($_SESSION['file_example_default_directory']);
+    drupal_set_message('Session reset.');
   }
 
   /**

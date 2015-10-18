@@ -24,7 +24,7 @@ class FileExampleTest extends WebTestBase {
    *
    * @var array
    */
-  public static $modules = array('file_example');
+  public static $modules = array('file_example', 'file');
 
   protected $priviledgedUser;
 
@@ -36,6 +36,15 @@ class FileExampleTest extends WebTestBase {
     $this->priviledgedUser = $this->drupalCreateUser(array('use file example'));
     $this->drupalLogin($this->priviledgedUser);
   }
+  
+  /**
+   * t() no longer returns a string, but is used heavily in this test in contexts where it
+   * is important that it really return a string, and not TranslatableMarkup.  We substitute
+   * our own implementation that will hopefully be localizable, but will not have this problem.
+   */
+  protected function t($string, $args = [], $options = []) {
+    return (string)t($string, $args, $options);
+  }
 
   /**
    * Test the basic File Example UI.
@@ -46,20 +55,19 @@ class FileExampleTest extends WebTestBase {
   public function testFileExampleBasic() {
 
     $expected_text = array(
-      t('Write managed file') => t('Saved managed file'),
-      t('Write unmanaged file') => t('Saved file as'),
-      t('Unmanaged using PHP') => t('Saved file as'),
+      $this->t('Write managed file') => $this->t('Saved managed file'),
+      $this->t('Write unmanaged file') => $this->t('Saved file as'),
+      $this->t('Unmanaged using PHP') => $this->t('Saved file as'),
     );
     // For each of the three buttons == three write types.
     $buttons = array(
-      t('Write managed file'),
-      t('Write unmanaged file'),
-      t('Unmanaged using PHP'),
+      $this->t('Write managed file'),
+      $this->t('Write unmanaged file'),
+      $this->t('Unmanaged using PHP'),
     );
     foreach ($buttons as $button) {
       // For each scheme supported by Drupal + the session:// wrapper.
-      //$schemes = array('public', 'private', 'temporary', 'session');
-      $schemes = array('public', 'private', 'temporary');
+      $schemes = array('public', 'private', 'temporary', 'session');
       foreach ($schemes as $scheme) {
         // Create a directory for use.
         $dirname = $scheme . '://' . $this->randomMachineName(10);
@@ -68,13 +76,13 @@ class FileExampleTest extends WebTestBase {
         $edit = array(
           'directory_name' => $dirname,
         );
-        $this->drupalPost('examples/file_example/fileapi', $edit, t('Check to see if directory exists'));
+        $this->drupalPostForm('examples/file_example/fileapi', $edit, $this->t('Check to see if directory exists'));
         $this->assertRaw(t('Directory %dirname does not exist', array('%dirname' => $dirname)), 'Verify that directory does not exist.');
 
-        $this->drupalPost('examples/file_example/fileapi', $edit, t('Create directory'));
+        $this->drupalPostForm('examples/file_example/fileapi', $edit, $this->t('Create directory'));
         $this->assertRaw(t('Directory %dirname is ready for use', array('%dirname' => $dirname)));
 
-        $this->drupalPost('examples/file_example/fileapi', $edit, t('Check to see if directory exists'));
+        $this->drupalPostForm('examples/file_example/fileapi', $edit, $this->t('Check to see if directory exists'));
         $this->assertRaw(t('Directory %dirname exists', array('%dirname' => $dirname)), 'Verify that directory now does exist.');
 
         // Create a file in the directory we created.
@@ -85,11 +93,11 @@ class FileExampleTest extends WebTestBase {
         $edit = array(
           'fileops_file' => $filename,
         );
-        $this->drupalPost('examples/file_example/fileapi', $edit, t('Check to see if file exists'));
+        $this->drupalPostForm('examples/file_example/fileapi', $edit, $this->t('Check to see if file exists'));
         $this->assertRaw(t('The file %filename does not exist', array('%filename' => $filename)), 'Verify that file does not yet exist.');
 
         debug(
-          t('Processing button=%button, scheme=%scheme, dir=%dirname, file=%filename',
+          $this->t('Processing button=%button, scheme=%scheme, dir=%dirname, file=%filename',
             array(
               '%button' => $button,
               '%scheme' => $scheme,
@@ -102,7 +110,8 @@ class FileExampleTest extends WebTestBase {
           'write_contents' => $content,
           'destination' => $filename,
         );
-        $this->drupalPost('examples/file_example/fileapi', $edit, $button);
+        $this->drupalPostForm('examples/file_example/fileapi', $edit, $button);
+        debug($expected_text[$button], "Button Text");
         $this->assertText($expected_text[$button]);
 
         // Capture the name of the output file, as it might have changed due
@@ -122,7 +131,7 @@ class FileExampleTest extends WebTestBase {
         $edit = array(
           'fileops_file' => $filename,
         );
-        $this->drupalPost('examples/file_example/fileapi', $edit, t('Check to see if file exists'));
+        $this->drupalPostForm('examples/file_example/fileapi', $edit, $this->t('Check to see if file exists'));
         $this->assertRaw(t('The file %filename exists', array('%filename' => $filename)), 'Verify that file now exists.');
 
         // Now read the file that got written above and verify that we can use
@@ -130,23 +139,23 @@ class FileExampleTest extends WebTestBase {
         $edit = array(
           'fileops_file' => $output_filename,
         );
-        $this->drupalPost('examples/file_example/fileapi', $edit, t('Read the file and store it locally'));
+        $this->drupalPostForm('examples/file_example/fileapi', $edit, $this->t('Read the file and store it locally'));
 
         $this->assertText(t('The file was read and copied'));
 
         $edit = array(
           'fileops_file' => $filename,
         );
-        $this->drupalPost('examples/file_example/fileapi', $edit, t('Delete file'));
+        $this->drupalPostForm('examples/file_example/fileapi', $edit, $this->t('Delete file'));
         $this->assertText(t('Successfully deleted'));
-        $this->drupalPost('examples/file_example/fileapi', $edit, t('Check to see if file exists'));
+        $this->drupalPostForm('examples/file_example/fileapi', $edit, $this->t('Check to see if file exists'));
         $this->assertRaw(t('The file %filename does not exist', array('%filename' => $filename)), 'Verify file has been deleted.');
 
         $edit = array(
           'directory_name' => $dirname,
         );
-        $this->drupalPost('examples/file_example/fileapi', $edit, t('Delete directory'));
-        $this->drupalPost('examples/file_example/fileapi', $edit, t('Check to see if directory exists'));
+        $this->drupalPostForm('examples/file_example/fileapi', $edit, $this->t('Delete directory'));
+        $this->drupalPostForm('examples/file_example/fileapi', $edit, $this->t('Check to see if directory exists'));
         $this->assertRaw(t('Directory %dirname does not exist', array('%dirname' => $dirname)), 'Verify that directory does not exist after deletion.');
       }
     }

@@ -20,15 +20,6 @@
  * @link file File summary on api.drupal.org @endlink for the function summary.
  */
 
-
-/**
- * A simple introduction to the workings of this module.
- */
-function file_example_intro() {
-  $markup = t('The file example module provides a form and code to demonstrate the Drupal 7 file api. Experiment with the form, and then look at the submit handlers in the code to understand the file api.');
-  return array('#markup' => $markup);
-}
-
 /**
  * @} End of "defgroup file_example".
  */

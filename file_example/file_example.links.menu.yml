@@ -1,0 +1,8 @@
+file_example.description:
+ title: File Example
+ route_name: file_example.description
+
+filed_example.fileapi:
+ title: Use File API to read/write a file
+ parent: file_example.description
+ route_name: filed_example.fileapi

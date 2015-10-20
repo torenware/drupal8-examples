@@ -1,0 +1,10 @@
+#
+# To implement a stream wrapper, we need to register it with the system.  We can either do this
+# manually by calling up the 'stream_wrapper.manager' service, or, as we do here, have
+# the system autoload it by tagging the service.
+#
+services:
+  file_example.stream_wrapper:
+    class: Drupal\file_example\StreamWrapper\FileExampleSessionStreamWrapper
+    tags:
+      - { name: stream_wrapper, scheme: session }

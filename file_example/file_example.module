@@ -1,0 +1,25 @@
+<?php
+/**
+ * @file
+ * Examples demonstrating the Drupal File API (and Stream Wrappers).
+ */
+
+/**
+ * @defgroup file_example Example: Files
+ * @ingroup examples
+ * @{
+ * Examples demonstrating the Drupal File API (and Stream Wrappers).
+ *
+ * The File Example module is a part of the Examples for Developers Project
+ * and provides various Drupal File API Examples. You can download and
+ * experiment with this code at the
+ * @link http://drupal.org/project/examples Examples for Developers project page. @endlink
+ *
+ * See @link http://drupal.org/node/555118 Drupal File API @endlink for handbook
+ * documentation on the File API and
+ * @link file File summary on api.drupal.org @endlink for the function summary.
+ */
+
+/**
+ * @} End of "defgroup file_example".
+ */

@@ -21,3 +21,15 @@ file_example.access_session:
     _title: 'Session Accessor'
   requirements:
     _permission: 'use file example'
+
+# In order to view files created with our demo stream wrapper class,
+# we need to use hook_file_download to grant any access. This route
+# will make sure that we have an external URL for these files, and that
+# our hook is called.
+file_example.files.session:
+  path: '/example/file_examples/files/{scheme}'
+  defaults:
+    _controller: '\Drupal\system\FileDownloadController::download'
+    scheme: session
+  requirements:
+    _access: 'TRUE'

@@ -33,9 +33,20 @@ class FileExampleTest extends WebTestBase {
    */
   public function setUp() {
     parent::setUp(array('file_example'));
-    $this->priviledgedUser = $this->drupalCreateUser(array('use file example'));
+    $permissions = [
+      'use file example',
+      'read private files',
+      'read temporary files',
+      'read session files',
+    ];
+    $this->priviledgedUser = $this->drupalCreateUser($permissions);
     $this->drupalLogin($this->priviledgedUser);
   }
+
+  /**
+   * xdebug savvy drupalPost
+   */
+  
   
   /**
    * t() no longer returns a string, but is used heavily in this test in contexts where it
@@ -86,7 +97,7 @@ class FileExampleTest extends WebTestBase {
         $this->assertRaw(t('Directory %dirname exists', array('%dirname' => $dirname)), 'Verify that directory now does exist.');
 
         // Create a file in the directory we created.
-        $content = $this->randomString(30);
+        $content = $this->randomMachineName(30);
         $filename = $dirname . '/' . $this->randomMachineName(30) . '.txt';
 
         // Assert that the file we're about to create does not yet exist.
@@ -124,7 +135,11 @@ class FileExampleTest extends WebTestBase {
         // checking and make sure that the data we put in is what we get out.
         if (!in_array($scheme, array('private', 'temporary'))) {
           $this->clickLink(t('this URL'));
-          $this->assertText($content);
+          // assertText give sketchy answers when the content is *exactly* the contents of the
+          // buffer, so let's do something less fragile.
+          //$this->assertText($content);
+          $buffer = $this->getTextContent();
+          $this->assertEqual($content, $buffer, "File contents matched.");
         }
 
         // Verify that the file exists.
@@ -146,6 +161,7 @@ class FileExampleTest extends WebTestBase {
         $edit = array(
           'fileops_file' => $filename,
         );
+        
         $this->drupalPostForm('examples/file_example/fileapi', $edit, $this->t('Delete file'));
         $this->assertText(t('Successfully deleted'));
         $this->drupalPostForm('examples/file_example/fileapi', $edit, $this->t('Check to see if file exists'));

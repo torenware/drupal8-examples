@@ -40,11 +40,12 @@ class FileExampleReadWriteForm extends FormBase {
    */
   protected function l($text, Url $url) {
     try {
-      $l = parent::l($text, $url);
+      $new_url = Url::fromUri(file_create_url($url->getUri()));
+      $l = parent::l($text, $new_url);
       return $l;
     }
     catch (\Exception $e) {
-      
+      return 'THREW';
     }
     return '';
   }
@@ -55,7 +56,6 @@ class FileExampleReadWriteForm extends FormBase {
    * @todo set up dependency injections for sessions.
    */
   public static function create(ContainerInterface $container) {
-    //return new static($container->get('plugin.manager.mail'));
     return new static();
   }
 
@@ -209,6 +209,8 @@ class FileExampleReadWriteForm extends FormBase {
     // Managed operations work with a file object.
     $file_object = \file_save_data($data, $uri, FILE_EXISTS_RENAME);
     if (!empty($file_object)) {
+      //$temp = \Drupal::service('file_system')->realpath($file_object->getFileUri());
+      //$temp2 = $this->l('some text', $file_object->urlInfo());
       $url = self::getExternalUrl($file_object);
       $_SESSION['file_example_default_file'] = $file_object->getFileUri();
       $file_data = $file_object->toArray();
@@ -249,26 +251,30 @@ class FileExampleReadWriteForm extends FormBase {
   private static function getExternalUrl($file_object) {
     if ($file_object instanceof FileInterface) {
       $uri = $file_object->getFileUri();
+      $url = Url::fromUri($uri);
     }
     else {
       // a little tricky, since file.inc is a little inconsistent, but often this
       // is a Uri. See http://drupal.stackexchange.com/questions/177869/how-to-create-a-url-to-an-unmanaged-public-file-in-drupal-8
-      $uri = file_create_url($file_object);
+      $url = file_create_url($file_object);
     }
+
    
     try {
-      $url = Url::fromUri($uri);
-      if ($url->isExternal()) {
-        return $url;
-      }
       // if the Uri is unroutable (such as for a temporary file), or if Drupal cannot create
       // a link, we will throw here:
-      $url->toString();
+      if (is_string($url)) {
+        $url = Url::fromUri($url);
+      }
+      if (!empty($url) and $url->isExternal()) {
+        return $url;
+      }
+      // $url->toString();
     }
     catch (\Exception $e) {
       return FALSE;
     }
-    return $url;
+    return FALSE;
   }
   
 /**
@@ -478,25 +484,20 @@ class FileExampleReadWriteForm extends FormBase {
     if (!empty($file_object)) {
       // While file_delete should return FALSE on failure,
       // it can currently throw an exception on certain cache states.
-      $result = FALSE;
       try {
-        $result = file_delete($file_object);
+        // This no longer returns a result code.  If things go bad,
+        // it will throw an exception:
+        file_delete($file_object->id());
+        drupal_set_message(t('Successfully deleted managed file %uri', array('%uri' => $uri)));
+        $_SESSION['file_example_default_file'] = $uri;        
       }
       catch (\Exception $e) {
-        //we should never get here, but as of 8.0rc1, YES WE CAN!
-        error_log('should not get here');
-      }
-      if ($result !== TRUE) {
         drupal_set_message(t('Failed deleting managed file %uri. Result was %result',
           array(
             '%uri' => $uri,
-            '%result' => print_r($result, TRUE),
+            '%result' => print_r($e->getMessage(), TRUE),
           )
         ), 'error');
-      }
-      else {
-        drupal_set_message(t('Successfully deleted managed file %uri', array('%uri' => $uri)));
-        $_SESSION['file_example_default_file'] = $uri;
       }
     }
     // Else use file_unmanaged_delete().
@@ -510,7 +511,6 @@ class FileExampleReadWriteForm extends FormBase {
         $_SESSION['file_example_default_file'] = $uri;
       }
     }
-
   }
 
   /**

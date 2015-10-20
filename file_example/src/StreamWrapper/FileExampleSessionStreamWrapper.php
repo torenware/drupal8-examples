@@ -14,6 +14,7 @@ use Drupal\Core\StreamWrapper;
 use Drupal\Core\Url;
 use Drupal\Component\Utility\Unicode;
 use Drupal\Component\Utility\Html;
+use Drupal\Core\Routing\UrlGeneratorTrait;
 
 /**
  * Example stream wrapper class to handle session:// streams.
@@ -47,6 +48,10 @@ use Drupal\Component\Utility\Html;
  */
 class FileExampleSessionStreamWrapper implements StreamWrapperInterface {
 
+  // We use this trait in order to get nice system-style links
+  // for files stored via our stream wrapper. (????)
+  use UrlGeneratorTrait;
+  
   /**
    * A generic resource handle.
    *
@@ -207,14 +212,8 @@ class FileExampleSessionStreamWrapper implements StreamWrapperInterface {
    * key via HTTP; normally it would be accessible some other way.
    */
   public function getExternalUrl() {
-    $options = [
-      'absolute' => TRUE,
-      'query' => [
-        'path' => $this->getLocalPath(),
-      ],
-    ];
-    $url = Url::fromRoute('file_example.access_session', [], $options);
-    return $url;
+    $path = str_replace('\\', '/', $this->getTarget());
+    return $this->url('file_example.files.session', ['scheme' => 'session', 'file' => $path], ['absolute' => TRUE]);
   }
 
   /**

@@ -1,8 +1,8 @@
 <?php
 /**
  * @file
- *  Contains Drupal\file_example\Tests\FileExampleTest.
- * 
+ *   Contains Drupal\file_example\Tests\FileExampleTest.
+ *
  * Tests for File Example.
  */
 
@@ -14,6 +14,7 @@ use Drupal\simpletest\WebTestBase;
  * Functional tests for the File Example module.
  *
  * @ingroup file_example
+ *
  * @group file_example
  * @group examples
  */
@@ -44,17 +45,12 @@ class FileExampleTest extends WebTestBase {
   }
 
   /**
-   * xdebug savvy drupalPost
-   */
-  
-  
-  /**
    * t() no longer returns a string, but is used heavily in this test in contexts where it
    * is important that it really return a string, and not TranslatableMarkup.  We substitute
    * our own implementation that will hopefully be localizable, but will not have this problem.
    */
   protected function t($string, $args = [], $options = []) {
-    return (string)t($string, $args, $options);
+    return (string) t($string, $args, $options);
   }
 
   /**
@@ -137,7 +133,7 @@ class FileExampleTest extends WebTestBase {
           $this->clickLink(t('this URL'));
           // assertText give sketchy answers when the content is *exactly* the contents of the
           // buffer, so let's do something less fragile.
-          //$this->assertText($content);
+          // $this->assertText($content);
           $buffer = $this->getTextContent();
           $this->assertEqual($content, $buffer, "File contents matched.");
         }
@@ -161,7 +157,7 @@ class FileExampleTest extends WebTestBase {
         $edit = array(
           'fileops_file' => $filename,
         );
-        
+
         $this->drupalPostForm('examples/file_example/fileapi', $edit, $this->t('Delete file'));
         $this->assertText(t('Successfully deleted'));
         $this->drupalPostForm('examples/file_example/fileapi', $edit, $this->t('Check to see if file exists'));
@@ -176,4 +172,5 @@ class FileExampleTest extends WebTestBase {
       }
     }
   }
+
 }

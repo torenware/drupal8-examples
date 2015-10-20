@@ -10,8 +10,6 @@
 namespace Drupal\file_example\StreamWrapper;
 
 use Drupal\Core\StreamWrapper\StreamWrapperInterface;
-use Drupal\Core\StreamWrapper;
-use Drupal\Core\Url;
 use Drupal\Component\Utility\Unicode;
 use Drupal\Component\Utility\Html;
 use Drupal\Core\Routing\UrlGeneratorTrait;
@@ -49,9 +47,9 @@ use Drupal\Core\Routing\UrlGeneratorTrait;
 class FileExampleSessionStreamWrapper implements StreamWrapperInterface {
 
   // We use this trait in order to get nice system-style links
-  // for files stored via our stream wrapper. (????)
+  // for files stored via our stream wrapper. (????).
   use UrlGeneratorTrait;
-  
+
   /**
    * A generic resource handle.
    *
@@ -97,6 +95,7 @@ class FileExampleSessionStreamWrapper implements StreamWrapperInterface {
    * Returns the type of stream wrapper.
    *
    * @return int
+   *  See StreamWrapperInterface for permissible values.
    */
   public static function getType() {
     return StreamWrapperInterface::NORMAL;
@@ -185,7 +184,7 @@ class FileExampleSessionStreamWrapper implements StreamWrapperInterface {
     // For my.awesome.image.jpeg, we try:
     // - jpeg
     // - image.jpeg, and
-    // - awesome.image.jpeg
+    // - awesome.image.jpeg.
     while ($additional_part = array_pop($file_parts)) {
       $extension = Unicode::strtolower($additional_part . ($extension ? '.' . $extension : ''));
       if (isset($mapping['extensions'][$extension])) {
@@ -296,9 +295,9 @@ class FileExampleSessionStreamWrapper implements StreamWrapperInterface {
    * Return a reference to the correct $_SESSION key.
    *
    * @param string $uri
-   *   The uri: session://something
+   *   The uri: session://something.
    * @param bool $create
-   *   If TRUE, create the key
+   *   If TRUE, create the key.
    *
    * @return array|bool
    *   A reference to the array at the end of the key-path, or
@@ -310,7 +309,7 @@ class FileExampleSessionStreamWrapper implements StreamWrapperInterface {
     $fail = FALSE;
     $path = $this->getLocalPath($uri);
     $path_components = explode('/', $path);
-    // Set up a reference to the root session:// 'directory.'
+    // Set up a reference to the root session:// 'directory.'.
     $var = &$_SESSION['file_example'];
     // Handle case of just session://.
     if (count($path_components) == 1 && $path_components[0] === '') {
@@ -387,7 +386,7 @@ class FileExampleSessionStreamWrapper implements StreamWrapperInterface {
   }
 
 
-   /**
+  /**
    * Change stream options.
    *
    * This method is called to set options on the stream.
@@ -689,7 +688,7 @@ class FileExampleSessionStreamWrapper implements StreamWrapperInterface {
       return FALSE;
     }
 
-    // Create the key in $_SESSION;
+    // Create the key in $_SESSION;.
     $this->uri_to_session_key($uri, TRUE);
 
     // Place a magic file inside it to differentiate this from an empty file.
@@ -860,4 +859,5 @@ class FileExampleSessionStreamWrapper implements StreamWrapperInterface {
     unset($this->directoryKeys);
     return TRUE;
   }
+
 }

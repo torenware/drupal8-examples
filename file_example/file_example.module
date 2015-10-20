@@ -20,11 +20,8 @@
  * @link file File summary on api.drupal.org @endlink for the function summary.
  */
 
-// for use with our hook_file_download implementation.
-use Drupal\Core\Session\AccountProxyInterface;
-use Drupal\Core\Session\AccountInterface;
- 
- /**
+// For use with our hook_file_download implementation.
+/**
  * Control access to private file downloads and specify HTTP headers.
  *
  * This hook allows modules to enforce permissions on file downloads whenever
@@ -37,10 +34,11 @@ use Drupal\Core\Session\AccountInterface;
  * would NEVER give general access to your temporary, and you certainly wouldn't
  * do it for your private files.  So we demostrate this here, but kids, don't
  * try this at home ;-)  Remember: keep your files secure!
- * 
- * @param $uri
+ *
+ * @param string $uri
  *   The URI of the file.
- * @return
+ *
+ * @return mixed
  *   If the user does not have permission to access the file, return -1. If the
  *   user has permission, return an array with the appropriate headers. If the
  *   file is not controlled by the current module, the return value should be

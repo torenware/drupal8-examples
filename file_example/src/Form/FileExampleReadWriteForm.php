@@ -11,8 +11,6 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\file\FileInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Url;
-use Drupal\Component\Utility\Html;
-use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -24,10 +22,9 @@ class FileExampleReadWriteForm extends FormBase {
 
   /**
    * Constructs a new FileExampleReadWriteForm page.
-   *
    */
   public function __construct() {
-    //todo: we may need to inject a session related object here.
+    // todo: we may need to inject a session related object here.
   }
 
   /**
@@ -49,7 +46,7 @@ class FileExampleReadWriteForm extends FormBase {
     }
     return '';
   }
- 
+
   /**
    * {@inheritdoc}
    *
@@ -184,23 +181,23 @@ class FileExampleReadWriteForm extends FormBase {
       '#value' => t('Reset the Session'),
       '#submit' => array('::handleResetSession'),
     );
-    
+
     return $form;
   }
 
-/**
- * Submit handler to write a managed file.
- *
- * The key functions used here are:
- * - file_save_data(), which takes a buffer and saves it to a named file and
- *   also creates a tracking record in the database and returns a file object.
- *   In this function we use FILE_EXISTS_RENAME (the default) as the argument,
- *   which means that if there's an existing file, create a new non-colliding
- *   filename and use it.
- * - file_create_url(), which converts a URI in the form public://junk.txt or
- *   private://something/test.txt into a URL like
- *   http://example.com/sites/default/files/junk.txt.
- */
+  /**
+   * Submit handler to write a managed file.
+   *
+   * The key functions used here are:
+   * - file_save_data(), which takes a buffer and saves it to a named file and
+   *   also creates a tracking record in the database and returns a file object.
+   *   In this function we use FILE_EXISTS_RENAME (the default) as the argument,
+   *   which means that if there's an existing file, create a new non-colliding
+   *   filename and use it.
+   * - file_create_url(), which converts a URI in the form public://junk.txt or
+   *   private://something/test.txt into a URL like
+   *   http://example.com/sites/default/files/junk.txt.
+   */
   public function handleManagedFile(array &$form, FormStateInterface $form_state) {
     $form_values = $form_state->getValues();
     $data = $form_values['write_contents'];
@@ -209,8 +206,8 @@ class FileExampleReadWriteForm extends FormBase {
     // Managed operations work with a file object.
     $file_object = \file_save_data($data, $uri, FILE_EXISTS_RENAME);
     if (!empty($file_object)) {
-      //$temp = \Drupal::service('file_system')->realpath($file_object->getFileUri());
-      //$temp2 = $this->l('some text', $file_object->urlInfo());
+      // $temp = \Drupal::service('file_system')->realpath($file_object->getFileUri());
+      // $temp2 = $this->l('some text', $file_object->urlInfo());
       $url = self::getExternalUrl($file_object);
       $_SESSION['file_example_default_file'] = $file_object->getFileUri();
       $file_data = $file_object->toArray();
@@ -219,19 +216,21 @@ class FileExampleReadWriteForm extends FormBase {
          $this->t('Saved managed file: %file to destination %destination (accessible via !url, actual uri=<span id="uri">@uri</span>)',
             array(
               '%file' => print_r($file_data, TRUE),
-              '%destination' => $uri, '@uri' => $file_object->getFileUri(),
+              '%destination' => $uri,
+              '@uri' => $file_object->getFileUri(),
               '!url' => $this->l(t('this URL'), $url),
             )
           )
         );
       }
       else {
-        //this Uri is not routable, so we cannot give a link to it.
+        // This Uri is not routable, so we cannot give a link to it.
         drupal_set_message(
          $this->t('Saved managed file: %file to destination %destination (no URL, since this stream type does not support it)',
             array(
               '%file' => print_r($file_data, TRUE),
-              '%destination' => $uri, '@uri' => $file_object->getFileUri(),
+              '%destination' => $uri,
+              '@uri' => $file_object->getFileUri(),
             )
           )
         );
@@ -254,14 +253,13 @@ class FileExampleReadWriteForm extends FormBase {
       $url = Url::fromUri($uri);
     }
     else {
-      // a little tricky, since file.inc is a little inconsistent, but often this
+      // A little tricky, since file.inc is a little inconsistent, but often this
       // is a Uri. See http://drupal.stackexchange.com/questions/177869/how-to-create-a-url-to-an-unmanaged-public-file-in-drupal-8
       $url = file_create_url($file_object);
     }
 
-   
     try {
-      // if the Uri is unroutable (such as for a temporary file), or if Drupal cannot create
+      // If the Uri is unroutable (such as for a temporary file), or if Drupal cannot create
       // a link, we will throw here:
       if (is_string($url)) {
         $url = Url::fromUri($url);
@@ -276,19 +274,19 @@ class FileExampleReadWriteForm extends FormBase {
     }
     return FALSE;
   }
-  
-/**
- * Submit handler to write an unmanaged file.
- *
- * The key functions used here are:
- * - file_unmanaged_save_data(), which takes a buffer and saves it to a named
- *   file, but does not create any kind of tracking record in the database.
- *   This example uses FILE_EXISTS_REPLACE for the third argument, meaning
- *   that if there's an existing file at this location, it should be replaced.
- * - file_create_url(), which converts a URI in the form public://junk.txt or
- *   private://something/test.txt into a URL like
- *   http://example.com/sites/default/files/junk.txt.
- */
+
+  /**
+   * Submit handler to write an unmanaged file.
+   *
+   * The key functions used here are:
+   * - file_unmanaged_save_data(), which takes a buffer and saves it to a named
+   *   file, but does not create any kind of tracking record in the database.
+   *   This example uses FILE_EXISTS_REPLACE for the third argument, meaning
+   *   that if there's an existing file at this location, it should be replaced.
+   * - file_create_url(), which converts a URI in the form public://junk.txt or
+   *   private://something/test.txt into a URL like
+   *   http://example.com/sites/default/files/junk.txt.
+   */
   public function handleUnmanagedFile(array &$form, FormStateInterface $form_state) {
     $form_values = $form_state->getValues();
     $data = $form_values['write_contents'];
@@ -318,7 +316,7 @@ class FileExampleReadWriteForm extends FormBase {
               '@uri' => $filename,
             )
           )
-        );        
+        );
       }
     }
     else {
@@ -327,17 +325,17 @@ class FileExampleReadWriteForm extends FormBase {
   }
 
 
-/**
- * Submit handler to write an unmanaged file using plain PHP functions.
- *
- * The key functions used here are:
- * - file_unmanaged_save_data(), which takes a buffer and saves it to a named
- *   file, but does not create any kind of tracking record in the database.
- * - file_create_url(), which converts a URI in the form public://junk.txt or
- *   private://something/test.txt into a URL like
- *   http://example.com/sites/default/files/junk.txt.
- * - drupal_tempnam() generates a temporary filename for use.
- */
+  /**
+   * Submit handler to write an unmanaged file using plain PHP functions.
+   *
+   * The key functions used here are:
+   * - file_unmanaged_save_data(), which takes a buffer and saves it to a named
+   *   file, but does not create any kind of tracking record in the database.
+   * - file_create_url(), which converts a URI in the form public://junk.txt or
+   *   private://something/test.txt into a URL like
+   *   http://example.com/sites/default/files/junk.txt.
+   * - drupal_tempnam() generates a temporary filename for use.
+   */
   public function handleUnmanagedPHP(array &$form, FormStateInterface $form_state) {
     $form_values = $form_state->getValues();
     $data = $form_values['write_contents'];
@@ -387,32 +385,32 @@ class FileExampleReadWriteForm extends FormBase {
             '@uri' => $destination,
           )
         )
-      );      
+      );
     }
 
   }
 
 
-/**
- * Submit handler for reading a stream wrapper.
- *
- * Drupal now has full support for PHP's stream wrappers, which means that
- * instead of the traditional use of all the file functions
- * ($fp = fopen("/tmp/some_file.txt");) far more sophisticated and generalized
- * (and extensible) things can be opened as if they were files. Drupal itself
- * provides the public:// and private:// schemes for handling public and
- * private files. PHP provides file:// (the default) and http://, so that a
- * URL can be read or written (as in a POST) as if it were a file. In addition,
- * new schemes can be provided for custom applications, as will be demonstrated
- * below.
- *
- * Here we take the stream wrapper provided in the form. We grab the
- * contents with file_get_contents(). Notice that's it's as simple as that:
- * file_get_contents("http://example.com") or
- * file_get_contents("public://somefile.txt") just works. Although it's
- * not necessary, we use file_unmanaged_save_data() to save this file locally
- * and then find a local URL for it by using file_create_url().
- */
+  /**
+   * Submit handler for reading a stream wrapper.
+   *
+   * Drupal now has full support for PHP's stream wrappers, which means that
+   * instead of the traditional use of all the file functions
+   * ($fp = fopen("/tmp/some_file.txt");) far more sophisticated and generalized
+   * (and extensible) things can be opened as if they were files. Drupal itself
+   * provides the public:// and private:// schemes for handling public and
+   * private files. PHP provides file:// (the default) and http://, so that a
+   * URL can be read or written (as in a POST) as if it were a file. In addition,
+   * new schemes can be provided for custom applications, as will be demonstrated
+   * below.
+   *
+   * Here we take the stream wrapper provided in the form. We grab the
+   * contents with file_get_contents(). Notice that's it's as simple as that:
+   * file_get_contents("http://example.com") or
+   * file_get_contents("public://somefile.txt") just works. Although it's
+   * not necessary, we use file_unmanaged_save_data() to save this file locally
+   * and then find a local URL for it by using file_create_url().
+   */
   public function handleFileRead(array &$form, FormStateInterface $form_state) {
     $form_values = $form_state->getValues();
     $uri = $form_values['fileops_file'];
@@ -434,7 +432,7 @@ class FileExampleReadWriteForm extends FormBase {
         $url = self::getExternalUrl($sourcename);
         $_SESSION['file_example_default_file'] = $sourcename;
         if ($url) {
-          //We need to convert the URL to string. Since the URL class throws on non-routables.
+          // We need to convert the URL to string. Since the URL class throws on non-routables.
           $url_string = file_create_url($url->getUri());
           drupal_set_message(
            $this->t('The file was read and copied to %filename which is accessible at !url',
@@ -453,7 +451,7 @@ class FileExampleReadWriteForm extends FormBase {
               )
             )
           );
-          
+
         }
       }
       else {
@@ -489,7 +487,7 @@ class FileExampleReadWriteForm extends FormBase {
         // it will throw an exception:
         file_delete($file_object->id());
         drupal_set_message(t('Successfully deleted managed file %uri', array('%uri' => $uri)));
-        $_SESSION['file_example_default_file'] = $uri;        
+        $_SESSION['file_example_default_file'] = $uri;
       }
       catch (\Exception $e) {
         drupal_set_message(t('Failed deleting managed file %uri. Result was %result',
@@ -575,7 +573,7 @@ class FileExampleReadWriteForm extends FormBase {
   /**
    * Submit handler to test directory existence.
    *
-   * This actually just checks to see if the directory is writable
+   * This actually just checks to see if the directory is writable.
    *
    * @param array $form
    *   FormAPI form.
@@ -601,7 +599,7 @@ class FileExampleReadWriteForm extends FormBase {
     $form_values = $form_state->getValues();
     // If the devel module is installed, use it's nicer message format.
     if (\Drupal::moduleHandler()->moduleExists('devel')) {
-      dsm($_SESSION['file_example'],$this->t('Entire $_SESSION["file_example"]'));
+      dsm($_SESSION['file_example'], $this->t('Entire $_SESSION["file_example"]'));
     }
     else {
       drupal_set_message('<pre>' . print_r($_SESSION['file_example'], TRUE) . '</pre>');
@@ -622,31 +620,31 @@ class FileExampleReadWriteForm extends FormBase {
    * {@inheritdoc}
    */
   public function validateForm(array &$form, FormStateInterface $form_state) {
-    //we don't use this, but the interface requires us to implement it.
+    // We don't use this, but the interface requires us to implement it.
   }
 
   /**
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
-    //we don't use this, but the interface requires us to implement it.
+    // We don't use this, but the interface requires us to implement it.
   }
 
   /**
-  * Utility function to check for and return a managed file.
-  *
-  * In this demonstration code we don't necessarily know if a file is managed
-  * or not, so often need to check to do the correct behavior. Normal code
-  * would not have to do this, as it would be working with either managed or
-  * unmanaged files.
-  *
-  * @param string $uri
-  *   The URI of the file, like public://test.txt.
-
-  * @return FileInterface|bool
-  *
-  * @todo This should still work. An entity query could be used instead. May be other alternatives.
-  */
+   * Utility function to check for and return a managed file.
+   *
+   * In this demonstration code we don't necessarily know if a file is managed
+   * or not, so often need to check to do the correct behavior. Normal code
+   * would not have to do this, as it would be working with either managed or
+   * unmanaged files.
+   *
+   * @param string $uri
+   *   The URI of the file, like public://test.txt.
+   *
+   * @return FileInterface|bool
+   *
+   * @todo This should still work. An entity query could be used instead. May be other alternatives.
+   */
   private static function getManagedFile($uri) {
     $fid = db_query('SELECT fid FROM {file_managed} WHERE uri = :uri', array(':uri' => $uri))->fetchField();
     if (!empty($fid)) {

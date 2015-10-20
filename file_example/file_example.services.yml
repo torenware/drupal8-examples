@@ -8,4 +8,3 @@ services:
     class: Drupal\file_example\StreamWrapper\FileExampleSessionStreamWrapper
     tags:
       - { name: stream_wrapper, scheme: session }
-  

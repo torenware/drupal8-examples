@@ -89,7 +89,7 @@ class FileExampleReadWriteForm extends FormBase {
     );
     $form['write_file']['write_contents'] = array(
       '#type' => 'textfield',
-      '#title' => $this->t('Enter something you would like to write to a file') . ' ' . date('m'),
+      '#title' => $this->t('Enter something you would like to write to a file'),
       '#default_value' => $this->t('Put some text here or just use this text'),
     );
 

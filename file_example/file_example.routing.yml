@@ -14,14 +14,6 @@ filed_example.fileapi:
   requirements:
     _permission: 'use file example'
 
-file_example.access_session:
-  path: '/examples/file_example/access_session'
-  defaults:
-    _controller: '\Drupal\file_example\Controller\FileExampleController::accessSession'
-    _title: 'Session Accessor'
-  requirements:
-    _permission: 'use file example'
-
 # In order to view files created with our demo stream wrapper class,
 # we need to use hook_file_download to grant any access. This route
 # will make sure that we have an external URL for these files, and that

@@ -577,7 +577,7 @@ class FileExampleReadWriteForm extends FormBase {
    *
    * @param array $form
    *   FormAPI form.
-   * @param array $form_state
+   * @param FormStateInterface $form_state
    *   FormAPI form state.
    */
   public function handleDirectoryExists(array &$form, FormStateInterface $form_state) {
@@ -642,6 +642,7 @@ class FileExampleReadWriteForm extends FormBase {
    *   The URI of the file, like public://test.txt.
    *
    * @return FileInterface|bool
+   *   A file object that matches the URI, or FALSE if not a managed file.
    *
    * @todo This should still work. An entity query could be used instead. May be other alternatives.
    */

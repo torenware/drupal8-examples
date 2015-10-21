@@ -10,7 +10,6 @@
 namespace Drupal\file_example\StreamWrapper;
 
 use Drupal\Core\StreamWrapper\StreamWrapperInterface;
-use Drupal\Component\Utility\Unicode;
 use Drupal\Component\Utility\Html;
 use Drupal\Core\Routing\UrlGeneratorTrait;
 
@@ -95,7 +94,7 @@ class FileExampleSessionStreamWrapper implements StreamWrapperInterface {
    * Returns the type of stream wrapper.
    *
    * @return int
-   *  See StreamWrapperInterface for permissible values.
+   *   See StreamWrapperInterface for permissible values.
    */
   public static function getType() {
     return StreamWrapperInterface::NORMAL;
@@ -159,40 +158,6 @@ class FileExampleSessionStreamWrapper implements StreamWrapperInterface {
     // Remove erroneous leading or trailing, forward-slashes and backslashes.
     // In the session:// scheme, there is never a leading slash on the target.
     return trim($target, '\/');
-  }
-
-  /**
-   * Implements getMimeType().
-   *
-   * @todo See if we can remove this; it's not part of the new API.
-   */
-  public static function getMimeType($uri, $mapping = NULL) {
-    if (!isset($mapping)) {
-      // The default file map, defined in file.mimetypes.inc is quite big.
-      // We only load it when necessary.
-      include_once DRUPAL_ROOT . '/includes/file.mimetypes.inc';
-      $mapping = file_mimetype_mapping();
-    }
-
-    $extension = '';
-    $file_parts = explode('.', basename($uri));
-
-    // Remove the first part: a full filename should not match an extension.
-    array_shift($file_parts);
-
-    // Iterate over the file parts, trying to find a match.
-    // For my.awesome.image.jpeg, we try:
-    // - jpeg
-    // - image.jpeg, and
-    // - awesome.image.jpeg.
-    while ($additional_part = array_pop($file_parts)) {
-      $extension = Unicode::strtolower($additional_part . ($extension ? '.' . $extension : ''));
-      if (isset($mapping['extensions'][$extension])) {
-        return $mapping['mimetypes'][$mapping['extensions'][$extension]];
-      }
-    }
-
-    return 'application/octet-stream';
   }
 
   /**

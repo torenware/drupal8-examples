@@ -9,8 +9,10 @@ namespace Drupal\file_example\Form;
 
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\file\FileInterface;
+use Drupal\Core\Database\Database;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Url;
+use Drupal\file\Entity\File;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -42,7 +44,7 @@ class FileExampleReadWriteForm extends FormBase {
       return $l;
     }
     catch (\Exception $e) {
-      return 'THREW';
+      // We might want to log this.
     }
     return '';
   }
@@ -206,8 +208,6 @@ class FileExampleReadWriteForm extends FormBase {
     // Managed operations work with a file object.
     $file_object = \file_save_data($data, $uri, FILE_EXISTS_RENAME);
     if (!empty($file_object)) {
-      // $temp = \Drupal::service('file_system')->realpath($file_object->getFileUri());
-      // $temp2 = $this->l('some text', $file_object->urlInfo());
       $url = self::getExternalUrl($file_object);
       $_SESSION['file_example_default_file'] = $file_object->getFileUri();
       $file_data = $file_object->toArray();
@@ -343,7 +343,7 @@ class FileExampleReadWriteForm extends FormBase {
 
     if (empty($destination)) {
       // If no destination has been provided, use a generated name.
-      $destination = drupal_tempnam('public://', 'file');
+      $destination = \Drupal::service('file_system')->tempnam('public://', 'file');
     }
 
     // With all traditional PHP functions we can use the stream wrapper notation
@@ -646,9 +646,12 @@ class FileExampleReadWriteForm extends FormBase {
    * @todo This should still work. An entity query could be used instead. May be other alternatives.
    */
   private static function getManagedFile($uri) {
-    $fid = db_query('SELECT fid FROM {file_managed} WHERE uri = :uri', array(':uri' => $uri))->fetchField();
+    $fid = Database::getConnection('default')->query(
+      'SELECT fid FROM {file_managed} WHERE uri = :uri',
+      array(':uri' => $uri)
+    )->fetchField();
     if (!empty($fid)) {
-      $file_object = file_load($fid);
+      $file_object = File::load($fid);
       return $file_object;
     }
     return FALSE;

@@ -47,7 +47,7 @@ use Drupal\Core\Routing\UrlGeneratorTrait;
 class FileExampleSessionStreamWrapper implements StreamWrapperInterface {
 
   // We use this trait in order to get nice system-style links
-  // for files stored via our stream wrapper. (????).
+  // for files stored via our stream wrapper.
   use UrlGeneratorTrait;
 
   /**

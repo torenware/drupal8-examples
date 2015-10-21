@@ -20,7 +20,6 @@
  * @link file File summary on api.drupal.org @endlink for the function summary.
  */
 
-// For use with our hook_file_download implementation.
 /**
  * Control access to private file downloads and specify HTTP headers.
  *

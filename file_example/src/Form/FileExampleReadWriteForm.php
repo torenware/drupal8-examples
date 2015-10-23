@@ -69,19 +69,57 @@ class FileExampleReadWriteForm extends FormBase {
   }
 
   /**
+   * Get the default file.
+   *
+   * This appears in the first block of the form.
+   *
+   * @return string
+   *   The URI of the default file.
+   */
+  protected function getDefaultFile() {
+    if (empty($_SESSION['file_example_default_file'])) {
+      $_SESSION['file_example_default_file'] = 'session://drupal.txt';
+    }
+    return $_SESSION['file_example_default_file'];
+  }
+
+  /**
+   * Set the default file.
+   *
+   * Set a default URI of the file used for read and write operations.
+   *
+   * @param string $uri
+   *
+   */
+   protected function setDefaultFile($uri) {
+     $_SESSION['file_example_default_file'] = (string) $uri;
+   }
+
+  /**
+   *  Get the default directory.
+   */
+  protected function getDefaultDirectory() {
+    if (empty($_SESSION['file_example_default_directory'])) {
+      $_SESSION['file_example_default_directory'] = 'session://directory1';
+    }
+    return $_SESSION['file_example_default_directory'];
+  }
+
+  /**
+   * Set the default directory.
+   */
+  protected function setDefaultDirectory($uri) {
+
+  }
+
+  /**
    * {@inheritdoc}
    *
    * @todo Remove direct manipulation of the session.
    */
   public function buildForm(array $form, FormStateInterface $form_state) {
-    if (empty($_SESSION['file_example_default_file'])) {
-      $_SESSION['file_example_default_file'] = 'session://drupal.txt';
-    }
-    $default_file = $_SESSION['file_example_default_file'];
-    if (empty($_SESSION['file_example_default_directory'])) {
-      $_SESSION['file_example_default_directory'] = 'session://directory1';
-    }
-    $default_directory = $_SESSION['file_example_default_directory'];
+    $default_file = $this->getDefaultFile();
+    $default_directory = $this->getDefaultDirectory();
 
     $form['write_file'] = array(
       '#type' => 'fieldset',
@@ -209,7 +247,7 @@ class FileExampleReadWriteForm extends FormBase {
     $file_object = \file_save_data($data, $uri, FILE_EXISTS_RENAME);
     if (!empty($file_object)) {
       $url = self::getExternalUrl($file_object);
-      $_SESSION['file_example_default_file'] = $file_object->getFileUri();
+      $this->setDefaultFile($file_object->getFileUri());
       $file_data = $file_object->toArray();
       if ($url) {
         drupal_set_message(
@@ -296,7 +334,7 @@ class FileExampleReadWriteForm extends FormBase {
     $filename = file_unmanaged_save_data($data, $destination, FILE_EXISTS_REPLACE);
     if ($filename) {
       $url = self::getExternalUrl($filename);
-      $_SESSION['file_example_default_file'] = $filename;
+      $this->setDefaultFile($filename);
       if ($url) {
         drupal_set_message(
          $this->t('Saved file as %filename (accessible via !url, uri=<span id="uri">@uri</span>)',
@@ -365,7 +403,7 @@ class FileExampleReadWriteForm extends FormBase {
       }
     }
     $url = self::getExternalUrl($destination);
-    $_SESSION['file_example_default_file'] = $destination;
+    $this->setDefaultFile($destination);
     if ($url) {
       drupal_set_message(
        $this->t('Saved file as %filename (accessible via !url, uri=<span id="uri">@uri</span>)',
@@ -430,7 +468,7 @@ class FileExampleReadWriteForm extends FormBase {
       $sourcename = file_unmanaged_save_data($buffer, 'public://' . $filename);
       if ($sourcename) {
         $url = self::getExternalUrl($sourcename);
-        $_SESSION['file_example_default_file'] = $sourcename;
+        $this->setDefaultFile($sourcename);
         if ($url) {
           // We need to convert the URL to string. Since the URL class throws on non-routables.
           $url_string = file_create_url($url->getUri());
@@ -487,7 +525,7 @@ class FileExampleReadWriteForm extends FormBase {
         // it will throw an exception:
         file_delete($file_object->id());
         drupal_set_message(t('Successfully deleted managed file %uri', array('%uri' => $uri)));
-        $_SESSION['file_example_default_file'] = $uri;
+        $this->setDefaultFile($uri);
       }
       catch (\Exception $e) {
         drupal_set_message(t('Failed deleting managed file %uri. Result was %result',
@@ -547,7 +585,7 @@ class FileExampleReadWriteForm extends FormBase {
     else {
       $result = is_dir($directory);
       drupal_set_message(t('Directory %directory is ready for use.', array('%directory' => $directory)));
-      $_SESSION['file_example_default_directory'] = $directory;
+      $this->setDefaultDirectory($directory);
     }
   }
 
@@ -566,7 +604,7 @@ class FileExampleReadWriteForm extends FormBase {
     }
     else {
       drupal_set_message(t('Recursively deleted directory %directory.', array('%directory' => $directory)));
-      $_SESSION['file_example_default_directory'] = $directory;
+      $this->setDefaultDirectory($directory);
     }
   }
 

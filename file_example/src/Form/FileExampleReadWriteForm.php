@@ -9,7 +9,10 @@ namespace Drupal\file_example\Form;
 
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\file\FileInterface;
+use Drupal\Core\State\StateInterface;
 use Drupal\Core\Database\Database;
+use Drupal\Core\File\FileSystemInterface;
+use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Url;
 use Drupal\file\Entity\File;
@@ -23,9 +26,29 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 class FileExampleReadWriteForm extends FormBase {
 
   /**
-   * Constructs a new FileExampleReadWriteForm page.
+   * @var StateInterface
    */
-  public function __construct() {
+  protected $state;
+
+  /**
+   * @var FileSystemInterface
+   */
+  protected $fileSystem;
+
+  /**
+   * @var ModuleHandlerInterface
+   */
+  protected $moduleHandler;
+
+  /**
+   * Constructs a new FileExampleReadWriteForm page.
+   *
+   * @param StateInterface $state
+   */
+  public function __construct(StateInterface $state, FileSystemInterface $file_system, ModuleHandlerInterface $module_handler) {
+    $this->state = $state;
+    $this->fileSystem = $file_system;
+    $this->moduleHandler = $module_handler;
     // todo: we may need to inject a session related object here.
   }
 
@@ -55,7 +78,10 @@ class FileExampleReadWriteForm extends FormBase {
    * @todo set up dependency injections for sessions.
    */
   public static function create(ContainerInterface $container) {
-    return new static();
+    $state = $container->get('state');
+    $file_system = $container->get('file_system');
+    $module_handler = $container->get('module_handler');
+    return new static($state, $file_system, $module_handler);
   }
 
   /**
@@ -77,10 +103,8 @@ class FileExampleReadWriteForm extends FormBase {
    *   The URI of the default file.
    */
   protected function getDefaultFile() {
-    if (empty($_SESSION['file_example_default_file'])) {
-      $_SESSION['file_example_default_file'] = 'session://drupal.txt';
-    }
-    return $_SESSION['file_example_default_file'];
+    $default_file = $this->state->get('file_example_default_file', 'session://drupal.txt');
+    return $default_file;
   }
 
   /**
@@ -92,24 +116,22 @@ class FileExampleReadWriteForm extends FormBase {
    *
    */
    protected function setDefaultFile($uri) {
-     $_SESSION['file_example_default_file'] = (string) $uri;
+     $this->state->set('file_example_default_file', (string) $uri);
    }
 
   /**
    *  Get the default directory.
    */
   protected function getDefaultDirectory() {
-    if (empty($_SESSION['file_example_default_directory'])) {
-      $_SESSION['file_example_default_directory'] = 'session://directory1';
-    }
-    return $_SESSION['file_example_default_directory'];
+    $default_directory = $this->state->get('file_example_default_directory', 'session://directory1');
+    return $default_directory;
   }
 
   /**
    * Set the default directory.
    */
   protected function setDefaultDirectory($uri) {
-
+    $this->state->set('file_example_default_directory', (string) $uri);
   }
 
   /**
@@ -381,7 +403,7 @@ class FileExampleReadWriteForm extends FormBase {
 
     if (empty($destination)) {
       // If no destination has been provided, use a generated name.
-      $destination = \Drupal::service('file_system')->tempnam('public://', 'file');
+      $destination = $this->fileSystem->tempnam('public://', 'file');
     }
 
     // With all traditional PHP functions we can use the stream wrapper notation
@@ -636,7 +658,7 @@ class FileExampleReadWriteForm extends FormBase {
   public function handleShowSession(array &$form, FormStateInterface $form_state) {
     $form_values = $form_state->getValues();
     // If the devel module is installed, use it's nicer message format.
-    if (\Drupal::moduleHandler()->moduleExists('devel')) {
+    if ($this->moduleHandler->moduleExists('devel')) {
       dsm($_SESSION['file_example'], $this->t('Entire $_SESSION["file_example"]'));
     }
     else {
@@ -648,9 +670,13 @@ class FileExampleReadWriteForm extends FormBase {
    * Utility submit function to show the contents of $_SESSION.
    */
   public function handleResetSession(array &$form, FormStateInterface $form_state) {
+    $this->state->delete('file_example_default_file');
+    $this->state->delete('file_example_default_directory');
+
+    // The actual file system is still built on a session, so this is
+    //the one and only reference to session in this class:
     unset($_SESSION['file_example']);
-    unset($_SESSION['file_example_default_file']);
-    unset($_SESSION['file_example_default_directory']);
+
     drupal_set_message('Session reset.');
   }
 

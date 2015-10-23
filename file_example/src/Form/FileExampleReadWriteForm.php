@@ -143,6 +143,10 @@ class FileExampleReadWriteForm extends FormBase {
     $default_file = $this->getDefaultFile();
     $default_directory = $this->getDefaultDirectory();
 
+    $form['description'] = array(
+      '#markup' => $this->t('This form demonstrates the Drupal 8 file api. Experiment with the form, and then look at the submit handlers in the code to understand the file api.'),
+    );
+
     $form['write_file'] = array(
       '#type' => 'fieldset',
       '#title' => $this->t('Write to a file'),

@@ -37,6 +37,32 @@ use Drupal\Core\Routing\UrlGeneratorTrait;
  * scheme they want to. This example adds the session:// scheme, which allows
  * reading and writing the $_SESSION['file_example'] key as if it were a file.
  *
+ * Drupal makes use of this concept to implement custom URI types like
+ * "private://" and "public://".  To implement a stream wrapper, reading
+ * the implementation of these stream wrappers is a very good way to get
+ * started.
+ *
+ * To implement a stream wrapper in Drupal, you should do the following:
+ *
+ *  1. Create a class that implements the StreamWrapperInterface
+ *     (Drupal\Core\StreamWrapper\StreamWrapperInterface).
+ *
+ *  2. Register the class with Drupal.  The best way to do this is to
+ *     define a service in your MY_MODULE.services.yml file.  The
+ *     service needs to be "tagged" with the scheme you want to implement,
+ *     and, as so:
+ *
+ * @code
+ *         tags:
+ *           - { name: stream_wrapper, scheme: session }
+ * @endcode
+ *      See file_example.services.yml for an example.
+ *
+ *  3. (Optional) If you want to be able to access your files over the web,
+ *     you need to add a route that handles, and implement hook_file_download().
+ *     See file_example.routing.yml for an example of this, and file.module
+ *     for the hook implementation.
+ *
  * Note that because this implementation uses simple PHP arrays ($_SESSION)
  * it is limited to string values, so binary files will not work correctly.
  * Only text files can be used.
@@ -48,14 +74,6 @@ class FileExampleSessionStreamWrapper implements StreamWrapperInterface {
   // We use this trait in order to get nice system-style links
   // for files stored via our stream wrapper.
   use UrlGeneratorTrait;
-
-  /**
-   * A generic resource handle.
-   *
-   * @var resource
-   */
-  public $handle = NULL;
-
 
   /**
    * Instance URI (stream).

@@ -27,6 +27,9 @@ class FileExampleTest extends WebTestBase {
    */
   public static $modules = array('file_example', 'file');
 
+  /**
+   * @var \Drupal\user\Entity\User
+   */
   protected $priviledgedUser;
 
   /**
@@ -83,13 +86,13 @@ class FileExampleTest extends WebTestBase {
         $edit = array(
           'directory_name' => $dirname,
         );
-        $this->drupalPostForm('examples/file_example/fileapi', $edit, $this->t('Check to see if directory exists'));
+        $this->drupalPostForm('examples/file_example', $edit, $this->t('Check to see if directory exists'));
         $this->assertRaw(t('Directory %dirname does not exist', array('%dirname' => $dirname)), 'Verify that directory does not exist.');
 
-        $this->drupalPostForm('examples/file_example/fileapi', $edit, $this->t('Create directory'));
+        $this->drupalPostForm('examples/file_example', $edit, $this->t('Create directory'));
         $this->assertRaw(t('Directory %dirname is ready for use', array('%dirname' => $dirname)));
 
-        $this->drupalPostForm('examples/file_example/fileapi', $edit, $this->t('Check to see if directory exists'));
+        $this->drupalPostForm('examples/file_example', $edit, $this->t('Check to see if directory exists'));
         $this->assertRaw(t('Directory %dirname exists', array('%dirname' => $dirname)), 'Verify that directory now does exist.');
 
         // Create a file in the directory we created.
@@ -100,7 +103,7 @@ class FileExampleTest extends WebTestBase {
         $edit = array(
           'fileops_file' => $filename,
         );
-        $this->drupalPostForm('examples/file_example/fileapi', $edit, $this->t('Check to see if file exists'));
+        $this->drupalPostForm('examples/file_example', $edit, $this->t('Check to see if file exists'));
         $this->assertRaw(t('The file %filename does not exist', array('%filename' => $filename)), 'Verify that file does not yet exist.');
 
         debug(
@@ -117,7 +120,7 @@ class FileExampleTest extends WebTestBase {
           'write_contents' => $content,
           'destination' => $filename,
         );
-        $this->drupalPostForm('examples/file_example/fileapi', $edit, $button);
+        $this->drupalPostForm('examples/file_example', $edit, $button);
         debug($expected_text[$button], "Button Text");
         $this->assertText($expected_text[$button]);
 
@@ -142,7 +145,7 @@ class FileExampleTest extends WebTestBase {
         $edit = array(
           'fileops_file' => $filename,
         );
-        $this->drupalPostForm('examples/file_example/fileapi', $edit, $this->t('Check to see if file exists'));
+        $this->drupalPostForm('examples/file_example', $edit, $this->t('Check to see if file exists'));
         $this->assertRaw(t('The file %filename exists', array('%filename' => $filename)), 'Verify that file now exists.');
 
         // Now read the file that got written above and verify that we can use
@@ -150,7 +153,7 @@ class FileExampleTest extends WebTestBase {
         $edit = array(
           'fileops_file' => $output_filename,
         );
-        $this->drupalPostForm('examples/file_example/fileapi', $edit, $this->t('Read the file and store it locally'));
+        $this->drupalPostForm('examples/file_example', $edit, $this->t('Read the file and store it locally'));
 
         $this->assertText(t('The file was read and copied'));
 
@@ -158,16 +161,16 @@ class FileExampleTest extends WebTestBase {
           'fileops_file' => $filename,
         );
 
-        $this->drupalPostForm('examples/file_example/fileapi', $edit, $this->t('Delete file'));
+        $this->drupalPostForm('examples/file_example', $edit, $this->t('Delete file'));
         $this->assertText(t('Successfully deleted'));
-        $this->drupalPostForm('examples/file_example/fileapi', $edit, $this->t('Check to see if file exists'));
+        $this->drupalPostForm('examples/file_example', $edit, $this->t('Check to see if file exists'));
         $this->assertRaw(t('The file %filename does not exist', array('%filename' => $filename)), 'Verify file has been deleted.');
 
         $edit = array(
           'directory_name' => $dirname,
         );
-        $this->drupalPostForm('examples/file_example/fileapi', $edit, $this->t('Delete directory'));
-        $this->drupalPostForm('examples/file_example/fileapi', $edit, $this->t('Check to see if directory exists'));
+        $this->drupalPostForm('examples/file_example', $edit, $this->t('Delete directory'));
+        $this->drupalPostForm('examples/file_example', $edit, $this->t('Check to see if directory exists'));
         $this->assertRaw(t('Directory %dirname does not exist', array('%dirname' => $dirname)), 'Verify that directory does not exist after deletion.');
       }
     }

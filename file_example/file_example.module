@@ -10,15 +10,34 @@
  * @{
  * Examples demonstrating the Drupal File API (and Stream Wrappers).
  *
- * The File Example module is a part of the Examples for Developers Project
- * and provides various Drupal File API Examples. You can download and
- * experiment with this code at the
- * @link http://drupal.org/project/examples Examples for Developers project page. @endlink
+ * The File Example module is part of the Examples for Developers Project and
+ * provides a variety of examples for the Developers project page.  Some
+ * concepts we demonstrate with this module:
  *
- * See @link http://drupal.org/node/555118 Drupal File API @endlink for handbook
- * documentation on the File API and
+ *   * Creating, moving and deleting files, and reading and writing from them.
+ *
+ *   * Using files that Drupal can manage via its Entity API ("managed files"),
+ *     and unmanaged files (the usual kind of file programs deal with).
+ *
+ *   * Creating and setting up directories with the right permissions, and with
+ *     .htaccess files that prevent unwanted accesses.
+ *
+ *   * Creating new "file systems" that use PHP's stream wrapper features,
+ *     similar to how Core creates its public://, private:// and temporary://
+ *     files.
+ *
+ *   * Allowing restricted access to files the way Drupal private files are
+ *     downloaded.
+ *
+ * Some links for further information on the File API and related information:
+ *
+ * @link http://drupal.org/project/examples Examples for Developers project
+ *    page. @endlink
  * @link file File summary on api.drupal.org @endlink for the function summary.
- */
+ *
+ **/
+
+
 
 /**
  * Control access to private file downloads and specify HTTP headers.
@@ -31,8 +50,14 @@
  * For our example module, we want to be able to see the temporary, private,
  * and session (our test stream wrapper / file scheme).  In general, you really
  * would NEVER give general access to your temporary, and you certainly wouldn't
- * do it for your private files.  So we demostrate this here, but kids, don't
+ * do it for your private files.  So we demonstrate this here, but kids, don't
  * try this at home ;-)  Remember: keep your files secure!
+ *
+ * For hook_file_download() to get called at all, your code needs set up your
+ * routes so that the download link uses FileDownloadController::download() as
+ * a controller. FileDownloadController::download() enforces access restrictions
+ * on the files it managed, in part by invoking hook_file_downloads().  See the
+ * File Example's routing file to see how to do this.
  *
  * @param string $uri
  *   The URI of the file.
@@ -44,9 +69,11 @@
  *   NULL.
  *
  * @see file_download()
+ * @see hook_file_download()
+ * @see file_example.routing.yml
+ * @see \Drupal\system\FileDownloadController::download()
  */
 function file_example_file_download($uri) {
-  // Check to see if this is a config download.
   $scheme = file_uri_scheme($uri);
   if (in_array($scheme, ['private', 'temporary', 'session'])) {
     $permission = "read $scheme files";

@@ -1,7 +1,14 @@
 #
-# To implement a stream wrapper, we need to register it with the system.  We can either do this
-# manually by calling up the 'stream_wrapper.manager' service, or, as we do here, have
-# the system autoload it by tagging the service.
+# As part of our demo, we implement a simple "file system" that lets us read and write
+# files out of the $_SESSION.  This isn't very practical, but it's a simple way to
+# demonstrate what you can do with PHP's stream wrappers.
+#
+# To get a stream wrapper to work to define a stream wrapper class, we need to register
+# that with the system.  We can either do this manually by calling up the 'stream_wrapper.manager'
+# service, but the better way to do this is to have the system autoload it by tagging the service,
+# as we do here.
+#
+# @see src/StreamWrapper/FileExampleSessionStreamWrapper.php
 #
 services:
   file_example.stream_wrapper:

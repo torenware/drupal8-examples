@@ -6,8 +6,8 @@
 # See file_example.module for details.
 #
 'read private files':
-  title:  See private files in the demo.
+  title:  See private files in the File Example module demo.
 'read temporary files':
-  title:  See temporary files in the demo.
+  title:  See temporary files in the File Example module demo.
 'read session files':
-  title:  See session files in the demo.
+  title:  See session files in the File Example module demo.

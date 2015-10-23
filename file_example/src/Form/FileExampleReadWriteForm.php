@@ -55,26 +55,6 @@ class FileExampleReadWriteForm extends FormBase {
   /**
    * {@inheritdoc}
    *
-   * This is an override of LinkGeneratorTrait::l to work around
-   * some problems related to handling non-routing URLs.
-   *
-   * @see https://www.drupal.org/node/2539622
-   */
-  protected function l($text, Url $url) {
-    try {
-      $new_url = Url::fromUri(file_create_url($url->getUri()));
-      $l = parent::l($text, $new_url);
-      return $l;
-    }
-    catch (\Exception $e) {
-      // We might want to log this.
-    }
-    return '';
-  }
-
-  /**
-   * {@inheritdoc}
-   *
    * @todo set up dependency injections for sessions.
    */
   public static function create(ContainerInterface $container) {
@@ -107,6 +87,7 @@ class FileExampleReadWriteForm extends FormBase {
     return $default_file;
   }
 
+
   /**
    * Set the default file.
    *
@@ -121,6 +102,9 @@ class FileExampleReadWriteForm extends FormBase {
 
   /**
    *  Get the default directory.
+   *
+   * @return string
+   *   The URI of the default directory.
    */
   protected function getDefaultDirectory() {
     $default_directory = $this->state->get('file_example_default_directory', 'session://directory1');
@@ -129,15 +113,111 @@ class FileExampleReadWriteForm extends FormBase {
 
   /**
    * Set the default directory.
+   *
+   * @param string $uri
+   *
    */
   protected function setDefaultDirectory($uri) {
     $this->state->set('file_example_default_directory', (string) $uri);
   }
 
   /**
+   * Utility function to check for and return a managed file.
+   *
+   * In this demonstration code we don't necessarily know if a file is managed
+   * or not, so often need to check to do the correct behavior. Normal code
+   * would not have to do this, as it would be working with either managed or
+   * unmanaged files.
+   *
+   * @param string $uri
+   *   The URI of the file, like public://test.txt.
+   *
+   * @return FileInterface|bool
+   *   A file object that matches the URI, or FALSE if not a managed file.
+   *
+   * @todo This should still work. An entity query could be used instead. May be other alternatives.
+   */
+  private static function getManagedFile($uri) {
+    $fid = Database::getConnection('default')->query(
+      'SELECT fid FROM {file_managed} WHERE uri = :uri',
+      array(':uri' => $uri)
+    )->fetchField();
+    if (!empty($fid)) {
+      $file_object = File::load($fid);
+      return $file_object;
+    }
+    return FALSE;
+  }
+
+  /**
    * {@inheritdoc}
    *
-   * @todo Remove direct manipulation of the session.
+   * This is an override of LinkGeneratorTrait::l to work around
+   * some problems related to handling non-routing URLs.
+   *
+   * @see https://www.drupal.org/node/2539622
+   */
+  protected function l($text, Url $url) {
+    try {
+      $new_url = Url::fromUri(file_create_url($url->getUri()));
+      $l = parent::l($text, $new_url);
+      return $l;
+    }
+    catch (\Exception $e) {
+      // We might want to log this.
+    }
+    return '';
+  }
+
+  /**
+   * Helper function to get us an external URL if this is legal, and to catch
+   * the exception Drupal throws if this is not possible.
+   *
+   * In Drupal 8, the URL generator is very sensitive to how you set things
+   * up, and some functions, in particular LinkGeneratorTrait::l(), will throw
+   * exceptions if you deviate from what's expected. This function will raise
+   * the chances your URL will be valid, and not do this.
+   *
+   * @param \Drupal\file\Entity\File $file_object
+   *   A file entity object.
+   *
+   * @return \Drupal\Core\Url
+   *   A Url object that can be displayed as an internal URL.
+   *
+   * @see http://drupal.stackexchange.com/questions/177869/how-to-create-a-url-to-an-unmanaged-public-file-in-drupal-8
+   */
+  private static function getExternalUrl($file_object) {
+    if ($file_object instanceof FileInterface) {
+      $uri = $file_object->getFileUri();
+      $url = Url::fromUri($uri);
+    }
+    else {
+      // A little tricky, since file.inc is a little inconsistent, but often this
+      // is a Uri.
+      $url = file_create_url($file_object);
+    }
+
+    try {
+      // If the Uri is unroutable (such as for a temporary file), or if Drupal cannot create
+      // a link, we will throw here:
+      if (is_string($url)) {
+        $url = Url::fromUri($url);
+      }
+      if (!empty($url) and $url->isExternal()) {
+        return $url;
+      }
+      // $url->toString();
+    }
+    catch (\Exception $e) {
+      return FALSE;
+    }
+    return FALSE;
+  }
+
+
+  /**
+   * {@inheritdoc}
+   *
    */
   public function buildForm(array $form, FormStateInterface $form_state) {
     $default_file = $this->getDefaultFile();
@@ -254,6 +334,9 @@ class FileExampleReadWriteForm extends FormBase {
   /**
    * Submit handler to write a managed file.
    *
+   * A "managed file" is a file that Drupal tracks as a file entity.  It's the
+   * standard way Drupal manages files in file fields and elsewhere.
+   *
    * The key functions used here are:
    * - file_save_data(), which takes a buffer and saves it to a named file and
    *   also creates a tracking record in the database and returns a file object.
@@ -263,6 +346,11 @@ class FileExampleReadWriteForm extends FormBase {
    * - file_create_url(), which converts a URI in the form public://junk.txt or
    *   private://something/test.txt into a URL like
    *   http://example.com/sites/default/files/junk.txt.
+
+   * @param array $form
+   *   An associative array containing the structure of the form.
+   * @param \Drupal\Core\Form\FormStateInterface $form_state
+   *   The current state of the form.
    */
   public function handleManagedFile(array &$form, FormStateInterface $form_state) {
     $form_values = $form_state->getValues();
@@ -308,39 +396,10 @@ class FileExampleReadWriteForm extends FormBase {
   }
 
   /**
-   * Helper function to get us an external URL if this is legal, and to catch
-   * the exception Drupal throws if this is not possible.
-   */
-  private static function getExternalUrl($file_object) {
-    if ($file_object instanceof FileInterface) {
-      $uri = $file_object->getFileUri();
-      $url = Url::fromUri($uri);
-    }
-    else {
-      // A little tricky, since file.inc is a little inconsistent, but often this
-      // is a Uri. See http://drupal.stackexchange.com/questions/177869/how-to-create-a-url-to-an-unmanaged-public-file-in-drupal-8
-      $url = file_create_url($file_object);
-    }
-
-    try {
-      // If the Uri is unroutable (such as for a temporary file), or if Drupal cannot create
-      // a link, we will throw here:
-      if (is_string($url)) {
-        $url = Url::fromUri($url);
-      }
-      if (!empty($url) and $url->isExternal()) {
-        return $url;
-      }
-      // $url->toString();
-    }
-    catch (\Exception $e) {
-      return FALSE;
-    }
-    return FALSE;
-  }
-
-  /**
    * Submit handler to write an unmanaged file.
+   *
+   * An unmanaged file is a file that Drupal does not track.  A standard
+   * operating system file, in other words.
    *
    * The key functions used here are:
    * - file_unmanaged_save_data(), which takes a buffer and saves it to a named
@@ -350,6 +409,11 @@ class FileExampleReadWriteForm extends FormBase {
    * - file_create_url(), which converts a URI in the form public://junk.txt or
    *   private://something/test.txt into a URL like
    *   http://example.com/sites/default/files/junk.txt.
+
+   * @param array $form
+   *   An associative array containing the structure of the form.
+   * @param \Drupal\Core\Form\FormStateInterface $form_state
+   *   The current state of the form.
    */
   public function handleUnmanagedFile(array &$form, FormStateInterface $form_state) {
     $form_values = $form_state->getValues();
@@ -399,6 +463,11 @@ class FileExampleReadWriteForm extends FormBase {
    *   private://something/test.txt into a URL like
    *   http://example.com/sites/default/files/junk.txt.
    * - drupal_tempnam() generates a temporary filename for use.
+   *
+   * @param array $form
+   *   An associative array containing the structure of the form.
+   * @param \Drupal\Core\Form\FormStateInterface $form_state
+   *   The current state of the form.
    */
   public function handleUnmanagedPHP(array &$form, FormStateInterface $form_state) {
     $form_values = $form_state->getValues();
@@ -474,6 +543,11 @@ class FileExampleReadWriteForm extends FormBase {
    * file_get_contents("public://somefile.txt") just works. Although it's
    * not necessary, we use file_unmanaged_save_data() to save this file locally
    * and then find a local URL for it by using file_create_url().
+
+   * @param array $form
+   *   An associative array containing the structure of the form.
+   * @param \Drupal\Core\Form\FormStateInterface $form_state
+   *   The current state of the form.
    */
   public function handleFileRead(array &$form, FormStateInterface $form_state) {
     $form_values = $form_state->getValues();
@@ -532,6 +606,11 @@ class FileExampleReadWriteForm extends FormBase {
 
   /**
    * Submit handler to delete a file.
+   *
+   * @param array $form
+   *   An associative array containing the structure of the form.
+   * @param \Drupal\Core\Form\FormStateInterface $form_state
+   *   The current state of the form.
    */
   public function handleFileDelete(array &$form, FormStateInterface $form_state) {
     $form_values = $form_state->getValues();
@@ -696,34 +775,6 @@ class FileExampleReadWriteForm extends FormBase {
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
     // We don't use this, but the interface requires us to implement it.
-  }
-
-  /**
-   * Utility function to check for and return a managed file.
-   *
-   * In this demonstration code we don't necessarily know if a file is managed
-   * or not, so often need to check to do the correct behavior. Normal code
-   * would not have to do this, as it would be working with either managed or
-   * unmanaged files.
-   *
-   * @param string $uri
-   *   The URI of the file, like public://test.txt.
-   *
-   * @return FileInterface|bool
-   *   A file object that matches the URI, or FALSE if not a managed file.
-   *
-   * @todo This should still work. An entity query could be used instead. May be other alternatives.
-   */
-  private static function getManagedFile($uri) {
-    $fid = Database::getConnection('default')->query(
-      'SELECT fid FROM {file_managed} WHERE uri = :uri',
-      array(':uri' => $uri)
-    )->fetchField();
-    if (!empty($fid)) {
-      $file_object = File::load($fid);
-      return $file_object;
-    }
-    return FALSE;
   }
 
 }

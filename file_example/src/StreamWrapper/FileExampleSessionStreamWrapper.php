@@ -109,6 +109,13 @@ class FileExampleSessionStreamWrapper implements StreamWrapperInterface {
   protected $streamPointer;
 
   /**
+   * The mode we are currently in.
+   *
+   * Possible values are FALSE, 'r', 'w'.
+   */
+  protected $streamMode;
+  
+  /**
    * Returns the type of stream wrapper.
    *
    * @return int
@@ -123,7 +130,9 @@ class FileExampleSessionStreamWrapper implements StreamWrapperInterface {
    * Constructor method.
    */
   public function __construct() {
-    $_SESSION['file_example']['.isadir.txt'] = TRUE;
+    $helper = new SessionWrapper();
+    $helper->setPath('.isadir.txt', TRUE);
+    $this->streamMode = FALSE;
   }
 
   /**
@@ -263,12 +272,27 @@ class FileExampleSessionStreamWrapper implements StreamWrapperInterface {
    */
   public function stream_open($uri, $mode, $options, &$opened_path) {
     $this->uri = $uri;
-    // We make $session_content a reference to the appropriate key in the
-    // $_SESSION variable. So if the local path were
-    // /example/test.txt it $session_content would now be a
-    // reference to $_SESSION['file_example']['example']['test.txt'].
-    $this->sessionContent = &$this->uri_to_session_key($uri);
-
+    $path = $this->getLocalPath($uri);
+    // We will support two modes only, 'r' and 'w'.  If the key is 'r',
+    // check to make sure the file is there.
+    if (stristr($mode,'r') !== FALSE) {
+      $helper = new SessionWrapper();
+      if (!$helper->checkPath($path)) {
+        return FALSE;
+      }
+      else {
+        $buffer = $helper->getPath($path);
+        if (!is_string($buffer)) {
+          return FALSE;
+        }
+        $this->sessionContent = $buffer;
+      }
+      $this->streamMode = 'r';
+    }
+    else {
+      $this->sessionContent = '';
+      $this->streamMode = 'w';
+    }
     // Reset the stream pointer since this is an open.
     $this->streamPointer = 0;
     return TRUE;
@@ -532,6 +556,15 @@ class FileExampleSessionStreamWrapper implements StreamWrapperInterface {
    * @see http://php.net/manual/en/streamwrapper.stream-flush.php
    */
   public function stream_flush() {
+    if ($this->streamMode == 'w') {
+      // Since we aren't writing directly to the session, we need to send
+      // the bytes on to the store.
+      $helper = new SessionWrapper();
+      $path = $this->getLocalPath($this->uri);
+      $helper->setPath($path, $this->sessionContent);
+      $this->sessionContent = '';
+      $this->streamPointer = 0;
+    }
     return TRUE;
   }
 
@@ -617,14 +650,26 @@ class FileExampleSessionStreamWrapper implements StreamWrapperInterface {
    * @see http://php.net/manual/en/streamwrapper.rename.php
    */
   public function rename($from_uri, $to_uri) {
-    $from_key = &$this->uri_to_session_key($from_uri);
-    $to_key = &$this->uri_to_session_key($to_uri);
-    if (is_dir($to_key) || is_file($to_key)) {
+    // We get the old key contents, write it
+    // to a new key, erase the old key.
+    $from_path = $this->getLocalPath($from_uri);
+    $to_path = $this->getLocalPath($to_uri);
+    $helper = new SessionWrapper();
+    if (!$helper->checkPath($from_path)) {
       return FALSE;
     }
-    $to_key = $from_key;
-    unset($from_key);
-    return TRUE;
+    $from_key = $helper->getPath($from_path);
+    $path_info = $helper->getParentPath($to_path);
+    $parent_path = $path_info['dirname'];
+    $new_file = $path_info['basename'];
+    // We will only allow writing to a non-existent file
+    // in an existing directory.
+    if ($helper->checkPath($parent_path) && !$helper->checkPath($to_path)) {
+      $helper->setPath($to_path, $from_key);
+      $helper->clearPath($from_path);
+      return TRUE;
+    }
+    return FALSE;
   }
 
   /**
@@ -670,13 +715,10 @@ class FileExampleSessionStreamWrapper implements StreamWrapperInterface {
     if (is_dir($uri) || is_file($uri)) {
       return FALSE;
     }
-
-    // Create the key in $_SESSION;.
-    $this->uri_to_session_key($uri, TRUE);
-
-    // Place a magic file inside it to differentiate this from an empty file.
-    $marker_uri = $uri . '/.isadir.txt';
-    $this->uri_to_session_key($marker_uri, TRUE);
+    $path = $this->getLocalPath($uri);
+    $helper = new SessionWrapper();
+    $new_dir = ['isadir.txt' => TRUE];
+    $helper->setPath($path, $new_dir);
     return TRUE;
   }
 
@@ -695,16 +737,11 @@ class FileExampleSessionStreamWrapper implements StreamWrapperInterface {
    */
   public function rmdir($uri, $options) {
     $path = $this->getLocalPath($uri);
-    $path_components = preg_split('/\//', $path);
-    $fail = FALSE;
-    $unset = '$_SESSION[\'file_example\']';
-    foreach ($path_components as $component) {
-      $unset .= '[\'' . $component . '\']';
+    $helper = new SessionWrapper();
+    if (!$helper->checkPath($path) or !is_array($helper->getPath($path))) {
+      return FALSE;
     }
-    // TODO: I really don't like this eval.
-    debug($unset, 'array element to be unset');
-    eval("unset($unset);");
-
+    $helper->clearPath($path);
     return TRUE;
   }
 
@@ -729,14 +766,20 @@ class FileExampleSessionStreamWrapper implements StreamWrapperInterface {
    * @see http://php.net/manual/en/streamwrapper.url-stat.php
    */
   public function url_stat($uri, $flags) {
-    // Get a reference to the $_SESSION key for this URI.
-    $key = $this->uri_to_session_key($uri, FALSE);
+    $path = $this->getLocalPath($uri);
+    $helper = new SessionWrapper();
+    if (!$helper->checkPath($path)) {
+      //return FALSE; // no file.
+    }
     // Default to fail.
     $return = FALSE;
     $mode = 0;
 
+    $path_info = $helper->getParentPath($path);
+    $key = $helper->getPath($path);
+    $key_name = $path_info['basename'];
     // We will call an array a directory and the root is always an array.
-    if (is_array($key) && array_key_exists('.isadir.txt', $key)) {
+    if (is_array($key)) {
       // S_IFDIR means it's a directory.
       $mode = 0040000;
     }
@@ -786,8 +829,13 @@ class FileExampleSessionStreamWrapper implements StreamWrapperInterface {
    * @see http://php.net/manual/en/streamwrapper.dir-opendir.php
    */
   public function dir_opendir($uri, $options) {
-    $var = &$this->uri_to_session_key($uri, FALSE);
-    if ($var === FALSE || !array_key_exists('.isadir.txt', $var)) {
+    $path = $this->getLocalPath($uri);
+    $helper = new SessionWrapper();
+    if (!$helper->checkPath($path)) {
+      return FALSE;
+    }
+    $var =  $helper->getPath($path);
+    if (!is_array($var)) {
       return FALSE;
     }
 

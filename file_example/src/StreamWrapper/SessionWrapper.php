@@ -109,7 +109,7 @@ class SessionWrapper {
    * @return array
    *   .
    */
-  protected function getParentPath($path) {
+  public function getParentPath($path) {
     $dirs = explode('/', $path);
     $tip = array_pop($dirs);
     $parent = implode('/', $dirs);

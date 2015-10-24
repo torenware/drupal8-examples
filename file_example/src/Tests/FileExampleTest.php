@@ -120,7 +120,12 @@ class FileExampleTest extends WebTestBase {
           'write_contents' => $content,
           'destination' => $filename,
         );
-        $this->drupalPostForm('examples/file_example', $edit, $button);
+        $options = [];
+        if (($scheme == 'session') and ($expected_text[$button] == 'Saved managed file')) {
+          //$options['query'] = [];
+          //$options['query']['XDEBUG_SESSION_START'] = 'PHPSTORM';
+        }
+        $this->drupalPostForm('examples/file_example', $edit, $button, $options);
         debug($expected_text[$button], "Button Text");
         $this->assertText($expected_text[$button]);
 

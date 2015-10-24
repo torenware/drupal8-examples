@@ -74,7 +74,13 @@ class SessionWrapperTest extends UnitTestCase {
     $after = $helper->checkPath('directory1/directory2/junk.txt');
     $this->assertFalse($after, "File 2 deep should be gone.");
  
-    
+    // Clean up test.
+    $helper = new SessionWrapper();
+    $store = $helper->getPath('');
+    $this->assertNotEmpty($store, "Before cleanup store is not empty.");
+    $helper->cleanUpStore();
+    $store = $helper->getPath('');
+    $this->assertEmpty($store, "After cleanup store is empty.");
     
   }
 

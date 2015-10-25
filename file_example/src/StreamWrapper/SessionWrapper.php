@@ -226,7 +226,7 @@ class SessionWrapper {
   /**
    * Set up the store for use.
    */
-  public static function setUpStore() {
+  public function setUpStore() {
     //nothing to do with $_SESSION version.
   }
 
@@ -234,7 +234,7 @@ class SessionWrapper {
   /**
    *  Zero out the store.
    */
-  public static function cleanUpStore() {
+  public function cleanUpStore() {
     $session = $this->getSession();
     $session->remove(static::SESSION_BASE_ATTRIBUTE);
   }

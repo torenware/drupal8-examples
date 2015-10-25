@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Contains \Drupal\file_example\Tests\StreamWrapperTest.
+ * Contains \Drupal\Tests\file_example\Kernel\StreamWrapperTest.
  */
 
 namespace Drupal\Tests\file_example\Kernel;
@@ -12,6 +12,8 @@ use Drupal\Core\Site\Settings;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\Component\Utility\Html;
 use Drupal\file_example\StreamWrapper\SessionWrapper;
+use Symfony\Component\HttpFoundation\Session\SessionInterface;
+
 /**
  * Base class for File_Example Drupal unit tests.
  */
@@ -23,19 +25,25 @@ class StreamWrapperTest extends KernelTestBase {
    * @var array
    */
   public static $modules = ['file_example', 'file', 'system'];
+  
+  /**
+   * @var RequestStack
+   */
+  protected $requestStack;
 
   /**
    * {@inheritdoc}
    */
   public function setUp() {
-    // Our wrapper uses $_SESSION, so "mock" it.
     global $_SESSION;
     // @todo Extra hack to avoid test fails, remove this once
     // https://www.drupal.org/node/2553661 is fixed.
     FileCacheFactory::setPrefix(Settings::getApcuPrefix('file_cache', $this->root));
     parent::setUp();
-    $_SESSION = [];
-
+    if (!isset($_SESSION)) {
+      $_SESSION = [];
+    }
+    $this->requestStack = \Drupal::service('request_stack');
   }
 
   /**
@@ -43,7 +51,8 @@ class StreamWrapperTest extends KernelTestBase {
    *
    */
   public function testDialTone() {
-    $this->assertNotNull($_SESSION);
+    $session = $this->requestStack->getCurrentRequest()->getSession();
+    $this->assertNotNull($session, "A session object exists.");
     $have_session_scheme = \Drupal::service('file_system')->validScheme('session');
     $this->assertTrue($have_session_scheme, "System knows about our stream wrapper");
   }
@@ -53,9 +62,7 @@ class StreamWrapperTest extends KernelTestBase {
    */
   public function testReadWrite() {
     $this->resetStore();
-    fe_debug_stuff($_SESSION, 'Session at start of test.');
     $store = $this->getCurrentStore();
-    fe_debug_stuff($store, 'Session at start of test.');
     
     $uri = 'session://drupal.txt';
     
@@ -127,12 +134,12 @@ class StreamWrapperTest extends KernelTestBase {
   }
   
   protected function getCurrentStore() {
-    $handle = new SessionWrapper();
+    $handle = new SessionWrapper($this->requestStack);
     return $handle->getPath('');
   }
   
   protected function resetStore() {
-    global $_SESSION;
-    unset($_SESSION['file_example']);
+    $handle = new SessionWrapper($this->requestStack);
+    $handle->cleanUpStore();
   }
 }

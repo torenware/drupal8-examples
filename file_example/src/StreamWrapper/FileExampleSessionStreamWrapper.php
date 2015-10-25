@@ -627,16 +627,8 @@ class FileExampleSessionStreamWrapper implements StreamWrapperInterface, Contain
    */
   public function unlink($uri) {
     $path = $this->getLocalPath($uri);
-    $path_components = preg_split('/\//', $path);
-    $fail = FALSE;
-    $unset = '$_SESSION[\'file_example\']';
-    foreach ($path_components as $component) {
-      $unset .= '[\'' . $component . '\']';
-    }
-    // TODO: Is there a better way to delete from an array?
-    // drupal_array_get_nested_value() doesn't work because it only returns
-    // a reference; unsetting a reference only unsets the reference.
-    eval("unset($unset);");
+    $helper = $this->getSessionWrapper();
+    $helper->clearPath($path);
     return TRUE;
   }
 

@@ -142,7 +142,10 @@ class StreamWrapperTest extends KernelTestBase {
     $this->assertNotFalse($bytes, "File in nested dirs got written to.");
     $got_back = file_get_contents($file_in_sub);
     $got_back = Html::decodeEntities($got_back);
-    $this->assertSame($content, $got_back, "Data in subdir made round trip.");    
+    $this->assertSame($content, $got_back, "Data in subdir made round trip.");
+    $worked = unlink($file_in_sub);
+    $this->assertTrue($worked, "Deleted file in subdir.");
+    $this->assertFalse(file_exists($file_in_sub), "File in subdir should not exist.");
   }
   
   protected function getCurrentStore() {

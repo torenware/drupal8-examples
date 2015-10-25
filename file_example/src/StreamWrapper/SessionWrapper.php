@@ -79,6 +79,9 @@ class SessionWrapper {
     // the of the path, so get a copy of the store.
     $store = $this->getStore();
 
+    if (empty($path)) {
+      return ['store' => &$store, 'tip' => &$store];
+    }
     $hierarchy = explode('/', $path);
     if (empty($hierarchy) or empty($hierarchy[0])) {
       return ['store' => &$store, 'tip' => &$store];
@@ -150,6 +153,7 @@ class SessionWrapper {
   public function getPath($path) {
     $path_info = $this->getParentPath($path);
     $store_info = $this->processPath(($path_info['dirname']));
+    $leaf = $path_info['basename'];
     if ($store_info === FALSE) {
       return NULL;
     }
@@ -158,13 +162,11 @@ class SessionWrapper {
       if (empty($path_info['basename'])) {
         return $store_info['store'];
       }
-      return $store_info['store'][$path_info['basename']];
+      if (!isset($store_info['store'][$leaf])) {
+        return NULL;
+      }
     }
-    
-    if (!isset($store_info['tip'][$path_info['basename']])) {
-      return NULL;
-    }
-    return $store_info['tip'][$path_info['basename']];
+    return $store_info['tip'][$leaf];
   }
 
   /**

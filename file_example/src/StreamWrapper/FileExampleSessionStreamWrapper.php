@@ -114,7 +114,7 @@ class FileExampleSessionStreamWrapper implements StreamWrapperInterface {
    * Possible values are FALSE, 'r', 'w'.
    */
   protected $streamMode;
-  
+
   /**
    * Returns the type of stream wrapper.
    *
@@ -296,45 +296,6 @@ class FileExampleSessionStreamWrapper implements StreamWrapperInterface {
     // Reset the stream pointer since this is an open.
     $this->streamPointer = 0;
     return TRUE;
-  }
-
-  /**
-   * Return a reference to the correct $_SESSION key.
-   *
-   * @param string $uri
-   *   The uri: session://something.
-   * @param bool $create
-   *   If TRUE, create the key.
-   *
-   * @return array|bool
-   *   A reference to the array at the end of the key-path, or
-   *   FALSE if the path doesn't map to a key-path (and $create is FALSE).
-   */
-  protected function &uri_to_session_key($uri, $create = TRUE) {
-    // Since our uri_to_session_key() method returns a reference, we
-    // have to set up a failure flag variable.
-    $fail = FALSE;
-    $path = $this->getLocalPath($uri);
-    $path_components = explode('/', $path);
-    // Set up a reference to the root session:// 'directory.'.
-    $var = &$_SESSION['file_example'];
-    // Handle case of just session://.
-    if (count($path_components) == 1 && $path_components[0] === '') {
-      return $var;
-    }
-    // Walk through the path components and create keys in $_SESSION,
-    // unless we're told not to create them.
-    foreach ($path_components as $component) {
-      if ($create || isset($var[$component])) {
-        $var = &$var[$component];
-      }
-      else {
-        // This path doesn't exist as keys, either because the
-        // key doesn't exist, or because we're told not to create it.
-        return $fail;
-      }
-    }
-    return $var;
   }
 
   /**
@@ -769,7 +730,7 @@ class FileExampleSessionStreamWrapper implements StreamWrapperInterface {
     $path = $this->getLocalPath($uri);
     $helper = new SessionWrapper();
     if (!$helper->checkPath($path)) {
-      //return FALSE; // no file.
+      return FALSE; // no file.
     }
     // Default to fail.
     $return = FALSE;

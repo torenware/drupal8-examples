@@ -17,6 +17,7 @@ use Drupal\Core\Form\FormBase;
 use Drupal\Core\Url;
 use Drupal\file\Entity\File;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Drupal\file_example\StreamWrapper\SessionWrapper;
 
 /**
  * File test form class.
@@ -649,7 +650,7 @@ class FileExampleReadWriteForm extends FormBase {
       }
       else {
         drupal_set_message(t('Successfully deleted unmanaged file %uri', array('%uri' => $uri)));
-        $_SESSION['file_example_default_file'] = $uri;
+        $this->setDefaultFile('file_example_default_file', $uri);
       }
     }
   }
@@ -742,24 +743,28 @@ class FileExampleReadWriteForm extends FormBase {
     $form_values = $form_state->getValues();
     // If the devel module is installed, use it's nicer message format.
     if ($this->moduleHandler->moduleExists('devel')) {
-      dsm($_SESSION['file_example'], $this->t('Entire $_SESSION["file_example"]'));
+      dsm($$this->getStoredData(), $this->t('Entire $_SESSION["file_example"]'));
     }
     else {
-      drupal_set_message('<pre>' . print_r($_SESSION['file_example'], TRUE) . '</pre>');
+      drupal_set_message('<pre>' . print_r($this->getStoredData(), TRUE) . '</pre>');
     }
   }
 
   /**
-   * Utility submit function to show the contents of $_SESSION.
+   * Utility submit function to reset the demo.
+   *
+   * Note this does NOT clear any managed file references in Drupal's DB. Perhaps
+   * we should do this as well.
+   *
+   * @param array $form
+   *   FormAPI form.
+   * @param FormStateInterface $form_state
+   *   FormAPI form state.
    */
   public function handleResetSession(array &$form, FormStateInterface $form_state) {
     $this->state->delete('file_example_default_file');
     $this->state->delete('file_example_default_directory');
-
-    // The actual file system is still built on a session, so this is
-    //the one and only reference to session in this class:
-    unset($_SESSION['file_example']);
-
+    $this->clearStoredData();
     drupal_set_message('Session reset.');
   }
 
@@ -777,4 +782,20 @@ class FileExampleReadWriteForm extends FormBase {
     // We don't use this, but the interface requires us to implement it.
   }
 
+  /**
+   * Get our stored data for display.
+   */
+  protected function getStoredData() {
+    $handle = new SessionWrapper();
+    return $handle->getPath('');
+  }
+  
+  /**
+   * Reset our stored data.
+   */
+  protected function clearStoredData() {
+    $handle = new SessionWrapper();
+    return $handle->cleanUpStore();
+  }
+  
 }

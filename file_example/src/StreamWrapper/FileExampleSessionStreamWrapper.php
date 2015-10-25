@@ -145,6 +145,12 @@ class FileExampleSessionStreamWrapper implements StreamWrapperInterface, Contain
    * do not know how to supply them.
    */
   public function __construct() {
+    // Dependency injection will not work here, since stream wrappers
+    // are not loaded the normal way: PHP creates them automatically
+    // when certain file functions are called.  This prevents us from
+    // passing arguments to the constructor, which we'd need to do in
+    // order to use standard dependency injection as is typically done
+    // in Drupal 8.
     $this->requestStack = \Drupal::service('request_stack');
     $helper = $this->getSessionWrapper();
     $helper->setPath('.isadir.txt', TRUE);

@@ -12,6 +12,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Session\SessionInterface;
 use Prophecy\Prophecy\ProphecyInterface;
 use Prophecy\Argument;
+use Drupal\file_example\StreamWrapper\SessionWrapper;
 
 trait MockSessionTrait {
 
@@ -29,6 +30,10 @@ trait MockSessionTrait {
   
   /**
    * Create a mock session object.
+   *
+   * @return ProphecyInterface
+   *   A test double, or mock, of a RequestStack object
+   *   that can be used to return a mock Session object.
    */
   protected function createSessionMock() {
     $this->sessionStore = [];
@@ -63,9 +68,16 @@ trait MockSessionTrait {
       ->getCurrentRequest()
       ->willReturn($request->reveal());
       
-    $this->requestStack = $requestStack->reveal();    
+    return $this->requestStack = $requestStack->reveal();    
   }
 
+  /**
+   * Get a session wrapper.
+   */
+  public function getSessionWrapper() {
+    return new SessionWrapper($this->requestStack);
+  }
+  
   /**
    * Helper for mocks.
    */

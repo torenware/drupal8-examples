@@ -13,37 +13,52 @@ use Drupal\KernelTests\KernelTestBase;
 use Drupal\Component\Utility\Html;
 use Drupal\file_example\StreamWrapper\SessionWrapper;
 use Symfony\Component\HttpFoundation\Session\SessionInterface;
+use Drupal\Tests\file_example\MockSessionTrait;
+use Drupal\Core\DependencyInjection\Container;
+use Drupal\Core\DependencyInjection\ContainerBuilder;
 
 /**
  * Base class for File_Example Drupal unit tests.
  */
 class StreamWrapperTest extends KernelTestBase {
 
+  use MockSessionTrait;
+  
   /**
    * Modules to enable.
    *
    * @var array
    */
   public static $modules = ['file_example', 'file', 'system'];
-  
-  /**
-   * @var RequestStack
-   */
-  protected $requestStack;
 
+  /**
+   * @var \Drupal\Core\DependencyInjection\Container
+   */
+  protected $container;
+  
   /**
    * {@inheritdoc}
    */
   public function setUp() {
-    global $_SESSION;
     // @todo Extra hack to avoid test fails, remove this once
     // https://www.drupal.org/node/2553661 is fixed.
     FileCacheFactory::setPrefix(Settings::getApcuPrefix('file_cache', $this->root));
     parent::setUp();
-    if (!isset($_SESSION)) {
-      $_SESSION = [];
-    }
-    $this->requestStack = \Drupal::service('request_stack');
+    // Typically if we need our tested class to get information from the system,
+    // we use dependency injection (DI) to get that information to the class. But
+    // stream wrappers are unusual.  They are created automatically by PHP itself
+    // when it calls one of the standard file functions, and for that reason, the
+    // constructor functions of stream wrappers cannot be passed any arguments,
+    // which prevents us from using the stardard DI technique we use in Drupal 8.
+    // The alternative is to create a "global" container that makes our services
+    // available to the class, which is what we do here.
+     $container = new ContainerBuilder();
+     $request_stack = $this->createSessionMock();
+     $container->set('request_stack', $request_stack);
+     $container->set('file_system', \Drupal::service('file_system'));
+     $container->set('kernel', \Drupal::service('kernel'));
+     \Drupal::setContainer($container);
+     $this->container = $container;
   }
 
   /**
@@ -51,8 +66,6 @@ class StreamWrapperTest extends KernelTestBase {
    *
    */
   public function testDialTone() {
-    $session = $this->requestStack->getCurrentRequest()->getSession();
-    $this->assertNotNull($session, "A session object exists.");
     $have_session_scheme = \Drupal::service('file_system')->validScheme('session');
     $this->assertTrue($have_session_scheme, "System knows about our stream wrapper");
   }
@@ -95,7 +108,6 @@ class StreamWrapperTest extends KernelTestBase {
     // well enough for our sample data (this code is not I18n safe).
     $contents = Html::decodeEntities($contents);
     $this->assertEquals($buffer, $contents, "Data for $uri should make the round trip.");
-    
   }
   
   /**
@@ -134,12 +146,12 @@ class StreamWrapperTest extends KernelTestBase {
   }
   
   protected function getCurrentStore() {
-    $handle = new SessionWrapper($this->requestStack);
+    $handle = $this->getSessionWrapper();
     return $handle->getPath('');
   }
   
   protected function resetStore() {
-    $handle = new SessionWrapper($this->requestStack);
+    $handle = $this->getSessionWrapper();
     $handle->cleanUpStore();
   }
 }

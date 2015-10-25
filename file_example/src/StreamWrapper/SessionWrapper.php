@@ -12,6 +12,10 @@
 
 namespace Drupal\file_example\StreamWrapper;
 
+use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Component\HttpFoundation\Session\SessionInterface;
+
+
 class SessionWrapper {
 
   /**
@@ -19,6 +23,11 @@ class SessionWrapper {
    */
   const SESSION_BASE_ATTRIBUTE = 'file_example';
 
+  /**
+   * @var RequestStack
+   */
+  protected $requestStack;
+  
   /**
    * @var string
    *
@@ -28,9 +37,22 @@ class SessionWrapper {
 
   /**
    *  Construct our helper object.
+   *
+   *  @param 
    */
-  public function __construct() {
+  public function __construct(RequestStack $request_stack) {
+    $this->requestStack = $request_stack;
     $this->storePath = '';
+  }
+  
+ 
+  /**
+   * Get a fresh session object.
+   *
+   * @return SessionInterface
+   */
+  protected function getSession() {
+    return $this->requestStack->getCurrentRequest()->getSession();
   }
 
   /**
@@ -39,10 +61,8 @@ class SessionWrapper {
    * @return array
    */
   protected function getStore() {
-    $store = [];
-    if (isset($_SESSION[static::SESSION_BASE_ATTRIBUTE])) {
-      $store = $_SESSION[static::SESSION_BASE_ATTRIBUTE];
-    }
+    $session = $this->getSession();
+    $store = $session->get(static::SESSION_BASE_ATTRIBUTE, []);
     return $store;
   }
 
@@ -53,7 +73,8 @@ class SessionWrapper {
    * @param array $store.
    */
   protected function setStore($store) {
-    $_SESSION[static::SESSION_BASE_ATTRIBUTE] = $store;
+    $session = $this->getSession();
+    $session->set(static::SESSION_BASE_ATTRIBUTE, $store);
   }
 
   /**
@@ -214,7 +235,8 @@ class SessionWrapper {
    *  Zero out the store.
    */
   public static function cleanUpStore() {
-    unset($_SESSION[static::SESSION_BASE_ATTRIBUTE]);
+    $session = $this->getSession();
+    $session->remove(static::SESSION_BASE_ATTRIBUTE);
   }
 
 }

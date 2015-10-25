@@ -13,5 +13,6 @@
 services:
   file_example.stream_wrapper:
     class: Drupal\file_example\StreamWrapper\FileExampleSessionStreamWrapper
+    arguments: ['@request_stack']
     tags:
       - { name: stream_wrapper, scheme: session }

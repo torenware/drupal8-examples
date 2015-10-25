@@ -9,9 +9,16 @@
 
 namespace Drupal\file_example\StreamWrapper;
 
+// These classes are used to implement a stream wrapper class.
 use Drupal\Core\StreamWrapper\StreamWrapperInterface;
 use Drupal\Component\Utility\Html;
 use Drupal\Core\Routing\UrlGeneratorTrait;
+
+// These classes are used to let us access the Session object.
+use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\HttpFoundation\RequestStack;
+
 
 /**
  * Example stream wrapper class to handle session:// streams.
@@ -69,12 +76,17 @@ use Drupal\Core\Routing\UrlGeneratorTrait;
  *
  * @ingroup file_example
  */
-class FileExampleSessionStreamWrapper implements StreamWrapperInterface {
+class FileExampleSessionStreamWrapper implements StreamWrapperInterface, ContainerInjectionInterface {
 
   // We use this trait in order to get nice system-style links
   // for files stored via our stream wrapper.
   use UrlGeneratorTrait;
 
+  /**
+   * @var RequestStack
+   */
+  protected $requestStack;
+  
   /**
    * Instance URI (stream).
    *
@@ -128,11 +140,36 @@ class FileExampleSessionStreamWrapper implements StreamWrapperInterface {
 
   /**
    * Constructor method.
+   *
+   * Note this cannot take any arguments; PHP's stream wrapper users
+   * do not know how to supply them.
    */
   public function __construct() {
-    $helper = new SessionWrapper();
+    $this->requestStack = \Drupal::service('request_stack');
+    $helper = $this->getSessionWrapper();
     $helper->setPath('.isadir.txt', TRUE);
     $this->streamMode = FALSE;
+  }
+  
+  /**
+   * {@inheritdoc}
+   *
+   * Since we are putting our data inside of the Session object, we
+   * need a way to access it.  The solution is to use dependency injection
+   * to get the RequestStack object.
+   *
+   * @see https://www.drupal.org/node/2380327
+   */
+  public static function create(ContainerInterface $container) {
+    $request_stack = $container->get('request_stack');
+    return new static($request_stack);
+  }
+  
+  /**
+   * Get wrapped session manipulators.
+   */
+  public function getSessionWrapper() {
+    return new SessionWrapper($this->requestStack);
   }
 
   /**
@@ -276,7 +313,7 @@ class FileExampleSessionStreamWrapper implements StreamWrapperInterface {
     // We will support two modes only, 'r' and 'w'.  If the key is 'r',
     // check to make sure the file is there.
     if (stristr($mode,'r') !== FALSE) {
-      $helper = new SessionWrapper();
+      $helper = $this->getSessionWrapper();
       if (!$helper->checkPath($path)) {
         return FALSE;
       }
@@ -520,7 +557,7 @@ class FileExampleSessionStreamWrapper implements StreamWrapperInterface {
     if ($this->streamMode == 'w') {
       // Since we aren't writing directly to the session, we need to send
       // the bytes on to the store.
-      $helper = new SessionWrapper();
+      $helper = $this->getSessionWrapper();
       $path = $this->getLocalPath($this->uri);
       $helper->setPath($path, $this->sessionContent);
       $this->sessionContent = '';
@@ -615,7 +652,7 @@ class FileExampleSessionStreamWrapper implements StreamWrapperInterface {
     // to a new key, erase the old key.
     $from_path = $this->getLocalPath($from_uri);
     $to_path = $this->getLocalPath($to_uri);
-    $helper = new SessionWrapper();
+    $helper = $this->getSessionWrapper();
     if (!$helper->checkPath($from_path)) {
       return FALSE;
     }
@@ -677,7 +714,7 @@ class FileExampleSessionStreamWrapper implements StreamWrapperInterface {
       return FALSE;
     }
     $path = $this->getLocalPath($uri);
-    $helper = new SessionWrapper();
+    $helper = $this->getSessionWrapper();
     $new_dir = ['isadir.txt' => TRUE];
     $helper->setPath($path, $new_dir);
     return TRUE;
@@ -698,7 +735,7 @@ class FileExampleSessionStreamWrapper implements StreamWrapperInterface {
    */
   public function rmdir($uri, $options) {
     $path = $this->getLocalPath($uri);
-    $helper = new SessionWrapper();
+    $helper = $this->getSessionWrapper();
     if (!$helper->checkPath($path) or !is_array($helper->getPath($path))) {
       return FALSE;
     }
@@ -728,7 +765,7 @@ class FileExampleSessionStreamWrapper implements StreamWrapperInterface {
    */
   public function url_stat($uri, $flags) {
     $path = $this->getLocalPath($uri);
-    $helper = new SessionWrapper();
+    $helper = $this->getSessionWrapper();
     if (!$helper->checkPath($path)) {
       return FALSE; // no file.
     }
@@ -791,7 +828,7 @@ class FileExampleSessionStreamWrapper implements StreamWrapperInterface {
    */
   public function dir_opendir($uri, $options) {
     $path = $this->getLocalPath($uri);
-    $helper = new SessionWrapper();
+    $helper = $this->getSessionWrapper();
     if (!$helper->checkPath($path)) {
       return FALSE;
     }

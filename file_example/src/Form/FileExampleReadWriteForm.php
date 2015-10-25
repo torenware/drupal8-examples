@@ -18,6 +18,8 @@ use Drupal\Core\Url;
 use Drupal\file\Entity\File;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Drupal\file_example\StreamWrapper\SessionWrapper;
+use Symfony\Component\HttpFoundation\RequestStack;
+
 
 /**
  * File test form class.
@@ -30,6 +32,11 @@ class FileExampleReadWriteForm extends FormBase {
    * @var StateInterface
    */
   protected $state;
+  
+  /**
+   * @var RequestStack
+   */
+  protected $requestStack;
 
   /**
    * @var FileSystemInterface
@@ -46,11 +53,11 @@ class FileExampleReadWriteForm extends FormBase {
    *
    * @param StateInterface $state
    */
-  public function __construct(StateInterface $state, FileSystemInterface $file_system, ModuleHandlerInterface $module_handler) {
+  public function __construct(StateInterface $state, FileSystemInterface $file_system, ModuleHandlerInterface $module_handler, RequestStack $request_stack) {
     $this->state = $state;
     $this->fileSystem = $file_system;
     $this->moduleHandler = $module_handler;
-    // todo: we may need to inject a session related object here.
+    $this->requestStack = $request_stack;
   }
 
   /**
@@ -62,7 +69,8 @@ class FileExampleReadWriteForm extends FormBase {
     $state = $container->get('state');
     $file_system = $container->get('file_system');
     $module_handler = $container->get('module_handler');
-    return new static($state, $file_system, $module_handler);
+    $request_stack = $container->get('request_stack');
+    return new static($state, $file_system, $module_handler, $request_stack);
   }
 
   /**
@@ -88,6 +96,16 @@ class FileExampleReadWriteForm extends FormBase {
     return $default_file;
   }
 
+  /**
+   * Test a SessionWrapper object.
+   *
+   * This is used to change relevant attributes of the Session.
+   *
+   * @return SessionWrapper
+   */
+  protected function getSessionWrapper() {
+    return new SessionWrapper($this->requestStack);
+  }
 
   /**
    * Set the default file.
@@ -786,7 +804,7 @@ class FileExampleReadWriteForm extends FormBase {
    * Get our stored data for display.
    */
   protected function getStoredData() {
-    $handle = new SessionWrapper();
+    $handle = $this->getSessionWrapper();
     return $handle->getPath('');
   }
   
@@ -794,7 +812,7 @@ class FileExampleReadWriteForm extends FormBase {
    * Reset our stored data.
    */
   protected function clearStoredData() {
-    $handle = new SessionWrapper();
+    $handle = $this->getSessionWrapper();
     return $handle->cleanUpStore();
   }
   

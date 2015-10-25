@@ -48,6 +48,8 @@ class FileExampleTest extends WebTestBase {
   }
 
   /**
+   * {@inheritdoc}
+   *
    * t() no longer returns a string, but is used heavily in this test in contexts where it
    * is important that it really return a string, and not TranslatableMarkup.  We substitute
    * our own implementation that will hopefully be localizable, but will not have this problem.
@@ -60,7 +62,7 @@ class FileExampleTest extends WebTestBase {
    * Test the basic File Example UI.
    *
    * - Create a directory to work with
-   * - Foreach scheme create and read files using each of the three methods.
+   * - For each scheme create and read files using each of the three methods.
    */
   public function testFileExampleBasic() {
 
@@ -122,8 +124,8 @@ class FileExampleTest extends WebTestBase {
         );
         $options = [];
         if (($scheme == 'session') and ($expected_text[$button] == 'Saved managed file')) {
-          //$options['query'] = [];
-          //$options['query']['XDEBUG_SESSION_START'] = 'PHPSTORM';
+          // $options['query'] = [];
+          // $options['query']['XDEBUG_SESSION_START'] = 'PHPSTORM';.
         }
         $this->drupalPostForm('examples/file_example', $edit, $button, $options);
         debug($expected_text[$button], "Button Text");

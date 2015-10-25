@@ -17,7 +17,6 @@ use Drupal\Core\Routing\UrlGeneratorTrait;
 // These classes are used to let us access the Session object.
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
-use Symfony\Component\HttpFoundation\RequestStack;
 
 
 /**
@@ -86,7 +85,7 @@ class FileExampleSessionStreamWrapper implements StreamWrapperInterface, Contain
    * @var RequestStack
    */
   protected $requestStack;
-  
+
   /**
    * Instance URI (stream).
    *
@@ -156,7 +155,7 @@ class FileExampleSessionStreamWrapper implements StreamWrapperInterface, Contain
     $helper->setPath('.isadir.txt', TRUE);
     $this->streamMode = FALSE;
   }
-  
+
   /**
    * {@inheritdoc}
    *
@@ -170,7 +169,7 @@ class FileExampleSessionStreamWrapper implements StreamWrapperInterface, Contain
     $request_stack = $container->get('request_stack');
     return new static($request_stack);
   }
-  
+
   /**
    * Get wrapped session manipulators.
    */
@@ -318,7 +317,7 @@ class FileExampleSessionStreamWrapper implements StreamWrapperInterface, Contain
     $path = $this->getLocalPath($uri);
     // We will support two modes only, 'r' and 'w'.  If the key is 'r',
     // check to make sure the file is there.
-    if (stristr($mode,'r') !== FALSE) {
+    if (stristr($mode, 'r') !== FALSE) {
       $helper = $this->getSessionWrapper();
       if (!$helper->checkPath($path)) {
         return FALSE;
@@ -765,7 +764,8 @@ class FileExampleSessionStreamWrapper implements StreamWrapperInterface, Contain
     $path = $this->getLocalPath($uri);
     $helper = $this->getSessionWrapper();
     if (!$helper->checkPath($path)) {
-      return FALSE; // no file.
+      return FALSE;
+      // No file.
     }
     // Default to fail.
     $return = FALSE;
@@ -830,7 +830,7 @@ class FileExampleSessionStreamWrapper implements StreamWrapperInterface, Contain
     if (!$helper->checkPath($path)) {
       return FALSE;
     }
-    $var =  $helper->getPath($path);
+    $var = $helper->getPath($path);
     if (!is_array($var)) {
       return FALSE;
     }

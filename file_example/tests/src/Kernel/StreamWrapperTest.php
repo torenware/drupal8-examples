@@ -11,10 +11,7 @@ use Drupal\Component\FileCache\FileCacheFactory;
 use Drupal\Core\Site\Settings;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\Component\Utility\Html;
-use Drupal\file_example\StreamWrapper\SessionWrapper;
-use Symfony\Component\HttpFoundation\Session\SessionInterface;
 use Drupal\Tests\file_example\MockSessionTrait;
-use Drupal\Core\DependencyInjection\Container;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
 
 /**
@@ -23,7 +20,7 @@ use Drupal\Core\DependencyInjection\ContainerBuilder;
 class StreamWrapperTest extends KernelTestBase {
 
   use MockSessionTrait;
-  
+
   /**
    * Modules to enable.
    *
@@ -35,7 +32,7 @@ class StreamWrapperTest extends KernelTestBase {
    * @var \Drupal\Core\DependencyInjection\Container
    */
   protected $container;
-  
+
   /**
    * {@inheritdoc}
    */
@@ -52,33 +49,32 @@ class StreamWrapperTest extends KernelTestBase {
     // which prevents us from using the stardard DI technique we use in Drupal 8.
     // The alternative is to create a "global" container that makes our services
     // available to the class, which is what we do here.
-     $container = new ContainerBuilder();
-     $request_stack = $this->createSessionMock();
-     $container->set('request_stack', $request_stack);
-     $container->set('file_system', \Drupal::service('file_system'));
-     $container->set('kernel', \Drupal::service('kernel'));
-     \Drupal::setContainer($container);
-     $this->container = $container;
+    $container = new ContainerBuilder();
+    $request_stack = $this->createSessionMock();
+    $container->set('request_stack', $request_stack);
+    $container->set('file_system', \Drupal::service('file_system'));
+    $container->set('kernel', \Drupal::service('kernel'));
+    \Drupal::setContainer($container);
+    $this->container = $container;
   }
 
   /**
    * Test dialtone.
-   *
    */
   public function testDialTone() {
     $have_session_scheme = \Drupal::service('file_system')->validScheme('session');
     $this->assertTrue($have_session_scheme, "System knows about our stream wrapper");
   }
-  
+
   /**
    * Test functions on a URI.
    */
   public function testReadWrite() {
     $this->resetStore();
     $store = $this->getCurrentStore();
-    
+
     $uri = 'session://drupal.txt';
-    
+
     $this->assertFalse(file_exists($uri), "File $uri should not exist yet.");
     $handle = fopen($uri, 'wb');
     $this->assertNotEmpty($handle, "Handle for $uri should be non-empty.");
@@ -87,7 +83,7 @@ class StreamWrapperTest extends KernelTestBase {
 
     // Original session class gets an error here,
     // "...stream_write wrote 10 bytes more data than requested".
-    // Does not matter for our demo, so repress error reporting here."
+    // Does not matter for our demo, so repress error reporting here.".
     $old = error_reporting(E_ERROR);
     $bytes_written = @fwrite($handle, $buffer);
     error_reporting($old);
@@ -99,17 +95,16 @@ class StreamWrapperTest extends KernelTestBase {
     $this->assertFalse(is_dir($uri), "$uri is not a directory.");
     $this->assertTrue(is_file($uri), "$uri is a file.");
     $size = filesize($uri);
-    
+
     // The following fails in the original implementation; the file is larger than the data.
-    //$this->assertEquals($len, $size, "Size of file $uri should match the data written to it.");
-    
+    // $this->assertEquals($len, $size, "Size of file $uri should match the data written to it.");.
     $contents = file_get_contents($uri);
     // The example implementation calls HTML::escape() on output. We reverse it
     // well enough for our sample data (this code is not I18n safe).
     $contents = Html::decodeEntities($contents);
     $this->assertEquals($buffer, $contents, "Data for $uri should make the round trip.");
   }
-  
+
   /**
    * Directory creation.
    */
@@ -120,9 +115,9 @@ class StreamWrapperTest extends KernelTestBase {
     $content = "Wrote this as a file?\n";
     $dir2 = basename($dir_uri);
     $dir1 = dirname($dir_uri);
-    
+
     $this->assertFalse(file_exists($dir1), "The outer dir $dir1 should not exist yet.");
-    // we don't care about mode, since we don't support it.
+    // We don't care about mode, since we don't support it.
     $worked = mkdir($dir1);
     $this->assertTrue(is_dir($dir1), "Directory $dir1 was created.");
     $first_file_content = "This one is in the first directory.";
@@ -133,7 +128,7 @@ class StreamWrapperTest extends KernelTestBase {
     $got_back = file_get_contents($uri);
     $got_back = Html::decodeEntities($got_back);
     $this->assertSame($first_file_content, $got_back, "Data in subdir made round trip.");
-    
+
     // Now try down down nested.
     $rslt = mkdir($dir_uri);
     $this->assertTrue($rslt, "Nested dir got created.");
@@ -147,14 +142,21 @@ class StreamWrapperTest extends KernelTestBase {
     $this->assertTrue($worked, "Deleted file in subdir.");
     $this->assertFalse(file_exists($file_in_sub), "File in subdir should not exist.");
   }
-  
+
+  /**
+   * Get the contents of the complete array stored in the session.
+   */
   protected function getCurrentStore() {
     $handle = $this->getSessionWrapper();
     return $handle->getPath('');
   }
-  
+
+  /**
+   * Clear the session storage area.
+   */
   protected function resetStore() {
     $handle = $this->getSessionWrapper();
     $handle->cleanUpStore();
   }
+
 }

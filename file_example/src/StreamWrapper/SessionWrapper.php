@@ -1,21 +1,21 @@
 <?php
 
 /**
- *
+ * @file
  * Contains \Drupal\file_example\StreamWrapper\SessionWrapper.
  *
  * Drupal 8 deprecates direct access to the $_SESSION magic variable.  To avoid
  * directly munging $_SESSION, this class abstracts access to the session
  * so we can use the approved APIs for D8.
- *
  */
 
 namespace Drupal\file_example\StreamWrapper;
 
 use Symfony\Component\HttpFoundation\RequestStack;
-use Symfony\Component\HttpFoundation\Session\SessionInterface;
 
-
+/**
+ * Wrapper for modifying and accessing data embedded in the session object.
+ */
 class SessionWrapper {
 
   /**
@@ -25,31 +25,33 @@ class SessionWrapper {
 
   /**
    * @var RequestStack
+   *   Representation of the current HTTP request.
    */
   protected $requestStack;
-  
+
   /**
    * @var string
-   *
-   * This is the current location in our store.
+   *   This is the current location in our store.
    */
   protected $storePath;
 
   /**
-   *  Construct our helper object.
+   * Construct our helper object.
    *
-   *  @param 
+   * @param RequestStack $request_stack
+   *   An object used to read data from the current HTTP request.
    */
   public function __construct(RequestStack $request_stack) {
     $this->requestStack = $request_stack;
     $this->storePath = '';
   }
-  
- 
+
+
   /**
    * Get a fresh session object.
    *
    * @return SessionInterface
+   *   A session object.
    */
   protected function getSession() {
     return $this->requestStack->getCurrentRequest()->getSession();
@@ -59,6 +61,7 @@ class SessionWrapper {
    * Get whatever's in the store.
    *
    * @return array
+   *   An associated array where scalar data represents file, and arrays represent directories.
    */
   protected function getStore() {
     $session = $this->getSession();
@@ -67,10 +70,11 @@ class SessionWrapper {
   }
 
   /**
-   *  Since we cannot deal with references to the session, write the whole
+   * Since we cannot deal with references to the session, write the whole
    *  store back.
    *
    * @param array $store.
+   *   The content of the whole session data store, to replace all of the current data.
    */
   protected function setStore($store) {
     $session = $this->getSession();
@@ -78,13 +82,12 @@ class SessionWrapper {
   }
 
   /**
-   *  Turn a path into the arrays we use internally.
+   * Turn a path into the arrays we use internally.
    *
    * @param string $path
    *   Path into the store.
-   * @param boolean $is_dir
+   * @param bool $is_dir
    *   Path will be used as a container.  Otherwise, just a scalar value.
-   *
    *
    * @return array|bool
    *   Return an array containing the "bottom" and "tip" of a directory
@@ -126,7 +129,7 @@ class SessionWrapper {
   }
 
   /**
-   *  The equivalent to dirname() and basename() for a path
+   * The equivalent to dirname() and basename() for a path.
    *
    * @param string $path
    *
@@ -144,6 +147,7 @@ class SessionWrapper {
    * Clear a path into our store.
    *
    * @param string $path
+   *   The path portion of a URI (i.e., without the SCHEME://).
    */
   public function clearPath($path) {
     $store = $this->getStore();
@@ -164,9 +168,10 @@ class SessionWrapper {
   }
 
   /**
-   *  Get a path.
+   * Get a path.
    *
    * @param string $path
+   *   A URI with the SCHEME:// part removed.
    *
    * @return mixed
    *   Return the stored value at this "node" of the store.
@@ -179,7 +184,7 @@ class SessionWrapper {
       return NULL;
     }
     if ($store_info['store'] === $store_info['tip']) {
-      //we are at the top of the hierarchy; return the store itself.
+      // We are at the top of the hierarchy; return the store itself.
       if (empty($path_info['basename'])) {
         return $store_info['store'];
       }
@@ -198,14 +203,14 @@ class SessionWrapper {
    * @param string|array $value
    *   Set a value.
    */
-   public function setPath($path, $value) {
-     $path_info = $this->getParentPath($path);
-     $store_info = $this->processPath(($path_info['dirname']));
-     if ($store_info !== FALSE) {
-       $store_info['tip'][$path_info['basename']] = $value;
-     }
-     $this->setStore($store_info['store']);
-   }
+  public function setPath($path, $value) {
+    $path_info = $this->getParentPath($path);
+    $store_info = $this->processPath(($path_info['dirname']));
+    if ($store_info !== FALSE) {
+      $store_info['tip'][$path_info['basename']] = $value;
+    }
+    $this->setStore($store_info['store']);
+  }
 
   /**
    * Does path exist?
@@ -217,7 +222,7 @@ class SessionWrapper {
     $path_info = $this->getParentPath($path);
     $store_info = $this->processPath($path_info['dirname']);
     if (empty($store_info)) {
-      // containing directory did not exist.
+      // Containing directory did not exist.
       return FALSE;
     }
     return isset($store_info['tip'][$path_info['basename']]);
@@ -227,12 +232,12 @@ class SessionWrapper {
    * Set up the store for use.
    */
   public function setUpStore() {
-    //nothing to do with $_SESSION version.
+    // Nothing to do with $_SESSION version.
   }
 
 
   /**
-   *  Zero out the store.
+   * Zero out the store.
    */
   public function cleanUpStore() {
     $session = $this->getSession();

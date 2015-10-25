@@ -2,7 +2,7 @@
 
 /**
  * @file
- *   Contains \Drupal\Tests\file_example\MockSessionTrait
+ * Contains \Drupal\Tests\file_example\MockSessionTrait.
  */
 
 namespace Drupal\Tests\file_example;
@@ -10,7 +10,6 @@ namespace Drupal\Tests\file_example;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Session\SessionInterface;
-use Prophecy\Prophecy\ProphecyInterface;
 use Prophecy\Argument;
 use Drupal\file_example\StreamWrapper\SessionWrapper;
 
@@ -22,12 +21,12 @@ trait MockSessionTrait {
    * We'll use this to back our mock session.
    */
   protected $sessionStore;
-  
+
   /**
    * @var RequestStack|ProphecyInterface
    */
   protected $requestStack;
-  
+
   /**
    * Create a mock session object.
    *
@@ -39,7 +38,7 @@ trait MockSessionTrait {
     $this->sessionStore = [];
     $session = $this->prophesize(SessionInterface::class);
     $test = $this;
-    
+
     $session
       ->get('file_example', [])
       ->will(function($args) use ($test) {
@@ -57,18 +56,18 @@ trait MockSessionTrait {
       ->will(function($args) use ($test) {
         $test->resetSessionStore();
       });
-      
+
     $request = $this->prophesize(Request::class);
     $request
       ->getSession()
       ->willReturn($session->reveal());
-      
-    $requestStack = $this->prophesize(RequestStack::class);
-    $requestStack
+
+    $request_stack = $this->prophesize(RequestStack::class);
+    $request_stack
       ->getCurrentRequest()
       ->willReturn($request->reveal());
-      
-    return $this->requestStack = $requestStack->reveal();    
+
+    return $this->requestStack = $request_stack->reveal();
   }
 
   /**
@@ -77,14 +76,14 @@ trait MockSessionTrait {
   public function getSessionWrapper() {
     return new SessionWrapper($this->requestStack);
   }
-  
+
   /**
    * Helper for mocks.
    */
   public function getSessionStore() {
     return $this->sessionStore;
   }
-  
+
   /**
    * Helper for our mocks.
    */

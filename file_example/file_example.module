@@ -34,10 +34,7 @@
  * @link http://drupal.org/project/examples Examples for Developers project
  *    page. @endlink
  * @link file File summary on api.drupal.org @endlink for the function summary.
- *
- **/
-
-
+ */
 
 /**
  * Control access to private file downloads and specify HTTP headers.

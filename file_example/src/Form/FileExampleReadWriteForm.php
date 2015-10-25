@@ -30,21 +30,25 @@ class FileExampleReadWriteForm extends FormBase {
 
   /**
    * @var StateInterface
+   *   Interface of the "state" service for site-specific data.
    */
   protected $state;
-  
+
   /**
    * @var RequestStack
+   *   Object used to get request data, such as the session.
    */
   protected $requestStack;
 
   /**
    * @var FileSystemInterface
+   *   Service for manipulating a file system.
    */
   protected $fileSystem;
 
   /**
    * @var ModuleHandlerInterface
+   *   Handler for invoking hooks and other module operations.
    */
   protected $moduleHandler;
 
@@ -52,6 +56,7 @@ class FileExampleReadWriteForm extends FormBase {
    * Constructs a new FileExampleReadWriteForm page.
    *
    * @param StateInterface $state
+   *   Storage interface for state data.
    */
   public function __construct(StateInterface $state, FileSystemInterface $file_system, ModuleHandlerInterface $module_handler, RequestStack $request_stack) {
     $this->state = $state;
@@ -102,6 +107,7 @@ class FileExampleReadWriteForm extends FormBase {
    * This is used to change relevant attributes of the Session.
    *
    * @return SessionWrapper
+   *   Wrapper object to manipulate the SESSION storage.
    */
   protected function getSessionWrapper() {
     return new SessionWrapper($this->requestStack);
@@ -113,14 +119,14 @@ class FileExampleReadWriteForm extends FormBase {
    * Set a default URI of the file used for read and write operations.
    *
    * @param string $uri
-   *
+   *   URI to save for future display in the form.
    */
-   protected function setDefaultFile($uri) {
-     $this->state->set('file_example_default_file', (string) $uri);
-   }
+  protected function setDefaultFile($uri) {
+    $this->state->set('file_example_default_file', (string) $uri);
+  }
 
   /**
-   *  Get the default directory.
+   * Get the default directory.
    *
    * @return string
    *   The URI of the default directory.
@@ -134,7 +140,7 @@ class FileExampleReadWriteForm extends FormBase {
    * Set the default directory.
    *
    * @param string $uri
-   *
+   *   URI to save for later form display.
    */
   protected function setDefaultDirectory($uri) {
     $this->state->set('file_example_default_directory', (string) $uri);
@@ -189,6 +195,8 @@ class FileExampleReadWriteForm extends FormBase {
   }
 
   /**
+   * Prepare Url objects to prevent exceptions by the URL generator.
+   *
    * Helper function to get us an external URL if this is legal, and to catch
    * the exception Drupal throws if this is not possible.
    *
@@ -197,7 +205,7 @@ class FileExampleReadWriteForm extends FormBase {
    * exceptions if you deviate from what's expected. This function will raise
    * the chances your URL will be valid, and not do this.
    *
-   * @param \Drupal\file\Entity\File $file_object
+   * @param \Drupal\file\Entity\File $file_object|string
    *   A file entity object.
    *
    * @return \Drupal\Core\Url
@@ -236,7 +244,6 @@ class FileExampleReadWriteForm extends FormBase {
 
   /**
    * {@inheritdoc}
-   *
    */
   public function buildForm(array $form, FormStateInterface $form_state) {
     $default_file = $this->getDefaultFile();
@@ -276,7 +283,7 @@ class FileExampleReadWriteForm extends FormBase {
     $form['write_file']['unmanaged_php'] = array(
       '#type' => 'submit',
       '#value' => $this->t('Unmanaged using PHP'),
-      '#submit' => array('::handleUnmanagedPHP'),
+      '#submit' => array('::handleUnmanagedPhp'),
     );
 
     $form['fileops'] = array(
@@ -365,9 +372,9 @@ class FileExampleReadWriteForm extends FormBase {
    * - file_create_url(), which converts a URI in the form public://junk.txt or
    *   private://something/test.txt into a URL like
    *   http://example.com/sites/default/files/junk.txt.
-
-   * @param array $form
+   *    * @param array $form
    *   An associative array containing the structure of the form.
+   *
    * @param \Drupal\Core\Form\FormStateInterface $form_state
    *   The current state of the form.
    */
@@ -428,9 +435,9 @@ class FileExampleReadWriteForm extends FormBase {
    * - file_create_url(), which converts a URI in the form public://junk.txt or
    *   private://something/test.txt into a URL like
    *   http://example.com/sites/default/files/junk.txt.
-
-   * @param array $form
+   *    * @param array $form
    *   An associative array containing the structure of the form.
+   *
    * @param \Drupal\Core\Form\FormStateInterface $form_state
    *   The current state of the form.
    */
@@ -488,7 +495,7 @@ class FileExampleReadWriteForm extends FormBase {
    * @param \Drupal\Core\Form\FormStateInterface $form_state
    *   The current state of the form.
    */
-  public function handleUnmanagedPHP(array &$form, FormStateInterface $form_state) {
+  public function handleUnmanagedPhp(array &$form, FormStateInterface $form_state) {
     $form_values = $form_state->getValues();
     $data = $form_values['write_contents'];
     $destination = !empty($form_values['destination']) ? $form_values['destination'] : NULL;
@@ -562,9 +569,9 @@ class FileExampleReadWriteForm extends FormBase {
    * file_get_contents("public://somefile.txt") just works. Although it's
    * not necessary, we use file_unmanaged_save_data() to save this file locally
    * and then find a local URL for it by using file_create_url().
-
-   * @param array $form
+   *    * @param array $form
    *   An associative array containing the structure of the form.
+   *
    * @param \Drupal\Core\Form\FormStateInterface $form_state
    *   The current state of the form.
    */
@@ -807,7 +814,7 @@ class FileExampleReadWriteForm extends FormBase {
     $handle = $this->getSessionWrapper();
     return $handle->getPath('');
   }
-  
+
   /**
    * Reset our stored data.
    */
@@ -815,5 +822,5 @@ class FileExampleReadWriteForm extends FormBase {
     $handle = $this->getSessionWrapper();
     return $handle->cleanUpStore();
   }
-  
+
 }

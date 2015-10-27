@@ -2,10 +2,10 @@
 
 /**
  * @file
- * Contains \Drupal\Tests\file_example\MockSessionTrait.
+ * Contains \Drupal\file_example\StreamWrapper\MockSessionTrait.
  */
 
-namespace Drupal\Tests\file_example;
+namespace Drupal\file_example\StreamWrapper;
 
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Request;

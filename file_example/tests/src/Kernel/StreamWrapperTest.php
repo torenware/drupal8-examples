@@ -11,7 +11,7 @@ use Drupal\Component\FileCache\FileCacheFactory;
 use Drupal\Core\Site\Settings;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\Component\Utility\Html;
-use Drupal\Tests\file_example\MockSessionTrait;
+use Drupal\file_example\StreamWrapper\MockSessionTrait;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
 
 /**

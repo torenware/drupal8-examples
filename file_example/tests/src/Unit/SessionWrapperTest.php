@@ -12,6 +12,20 @@ use Drupal\file_example\StreamWrapper\SessionWrapper;
 use Drupal\Tests\file_example\MockSessionTrait;
 /**
  * PHPUnit test for the SessionWrapper session manipulation class.
+ *
+ * The SessionWrapper class is a utility used to manipulate an associative
+ * array stored in the session object as if it were a file system.  This
+ * greatly simplifies the code in our stream wrapper class, since
+ * SessionWrapper handles things like interacting with the session object,
+ * and also deals with translating path strings into nested arrays.
+ *
+ * The test class covers the equivalent of adding directories and files,
+ * reading and writing data nodes (our "files"), and clearing of arrays
+ * and data nodes (file deletion for purposes of the stream wrapper class).
+ *
+ * @ingroup file_example
+ * @group file_example
+ * @group examples
  */
 class SessionWrapperTest extends UnitTestCase {
 

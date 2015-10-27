@@ -15,7 +15,19 @@ use Drupal\Tests\file_example\MockSessionTrait;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
 
 /**
- * Base class for File_Example Drupal unit tests.
+ * Test of the Session Stream Wrapper Class.
+ *
+ * This test covers the PHP-level (i.e., not Drupal-specific) functions of the
+ * FileExampleSessionStreamWrapper class. It's not directly loaded here because
+ * it loads in background automatically as soon as the file_example module
+ * loads.
+ *
+ * The tests invoke the stream wrapper's functionality indirectly by calling
+ * PHP's file functions.
+ *
+ * @ingroup file_example
+ * @group file_example
+ * @group examples
  */
 class StreamWrapperTest extends KernelTestBase {
 

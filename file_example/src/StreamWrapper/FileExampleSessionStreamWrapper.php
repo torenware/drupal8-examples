@@ -14,11 +14,6 @@ use Drupal\Core\StreamWrapper\StreamWrapperInterface;
 use Drupal\Component\Utility\Html;
 use Drupal\Core\Routing\UrlGeneratorTrait;
 
-// These classes are used to let us access the Session object.
-use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
-use Symfony\Component\DependencyInjection\ContainerInterface;
-
-
 /**
  * Example stream wrapper class to handle session:// streams.
  *
@@ -75,7 +70,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  *
  * @ingroup file_example
  */
-class FileExampleSessionStreamWrapper implements StreamWrapperInterface, ContainerInjectionInterface {
+class FileExampleSessionStreamWrapper implements StreamWrapperInterface {
 
   // We use this trait in order to get nice system-style links
   // for files stored via our stream wrapper.
@@ -154,20 +149,6 @@ class FileExampleSessionStreamWrapper implements StreamWrapperInterface, Contain
     $helper = $this->getSessionWrapper();
     $helper->setPath('.isadir.txt', TRUE);
     $this->streamMode = FALSE;
-  }
-
-  /**
-   * {@inheritdoc}
-   *
-   * Since we are putting our data inside of the Session object, we
-   * need a way to access it.  The solution is to use dependency injection
-   * to get the RequestStack object.
-   *
-   * @see https://www.drupal.org/node/2380327
-   */
-  public static function create(ContainerInterface $container) {
-    $request_stack = $container->get('request_stack');
-    return new static($request_stack);
   }
 
   /**
